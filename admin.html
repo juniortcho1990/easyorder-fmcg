@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>EasyOrder Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Arial,sans-serif;background:#f0f2f5;}
+.header{background:#1a5c38;color:white;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;}
+.header h1{font-size:22px;}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;padding:20px;}
+.stat{background:white;padding:20px;border-radius:10px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.num{font-size:32px;font-weight:bold;color:#1a5c38;}
+.label{color:#666;margin-top:5px;font-size:14px;}
+.section{background:white;margin:0 20px 20px;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.section h2{color:#1a5c38;margin-bottom:15px;padding-bottom:8px;border-bottom:2px solid #1a5c38;}
+table{width:100%;border-collapse:collapse;}
+th{background:#1a5c38;color:white;padding:10px;text-align:left;}
+td{padding:10px;border-bottom:1px solid #eee;}
+.prep{background:#fff3cd;color:#856404;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:bold;}
+.livr{background:#d1e7dd;color:#0a3622;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:bold;}
+select{padding:5px;border-radius:5px;border:1px solid #ddd;}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>EasyOrder FMCG - Dashboard Admin</h1>
+  <span id="dt"></span>
+</div>
+<div class="stats">
+  <div class="stat"><div class="num" id="tc">0</div><div class="label">Commandes</div></div>
+  <div class="stat"><div class="num" id="ca">0</div><div class="label">CA (FCFA)</div></div>
+  <div class="stat"><div class="num" id="cl">0</div><div class="label">Clients</div></div>
+  <div class="stat"><div class="num" id="ep">0</div><div class="label">En preparation</div></div>
+</div>
+<div class="section">
+  <h2>Commandes recentes</h2>
+  <table>
+    <thead><tr><th>Numero</th><th>Client</th><th>Total</th><th>Date</th><th>Statut</th><th>Action</th></tr></thead>
+    <tbody id="tb"><tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">Aucune commande</td></tr></tbody>
+  </table>
+</div>
+<script>
+function ut(){document.getElementById("dt").textContent=new Date().toLocaleString("fr-FR");}
+ut();
+setInterval(ut,1000);
+
+function changerStatut(n,s){
+  fetch("http://localhost:3000/api/commandes/"+n+"/statut",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({statut:s})
+  }).then(function(){charger();});
+}
+
+function charger(){
+  fetch("http://localhost:3000/api/commandes").then(function(r){
+    return r.json();
+  }).then(function(d){
+    document.getElementById("tc").textContent=d.length;
+    document.getElementById("ca").textContent=d.reduce(function(a,c){return a+c.total;},0).toLocaleString();
+    var clients=[];
+    d.forEach(function(c){if(clients.indexOf(c.t)===-1)clients.push(c.t);});
+    document.getElementById("cl").textContent=clients.length;
+    document.getElementById("ep").textContent=d.filter(function(c){return c.statut==="En preparation";}).length;
+    var tb=document.getElementById("tb");
+    if(!d.length){
+      tb.innerHTML="<tr><td colspan='6' style='text-align:center;color:#999;padding:20px;'>Aucune commande</td></tr>";
+      return;
+    }
+    var html="";
+    for(var i=0;i<d.length;i++){
+      var c=d[i];
+      var badge=c.statut==="En preparation"?"prep":"livr";
+      html+="<tr>";
+      html+="<td><strong>"+c.n+"</strong></td>";
+      html+="<td>"+c.t+"</td>";
+      html+="<td>"+c.total+" FCFA</td>";
+      html+="<td>"+c.date+"</td>";
+      html+="<td><span class='"+badge+"'>"+c.statut+"</span></td>";
+      html+="<td><select onchange='changerStatut(\""+c.n+"\",this.value)'>";
+      html+="<option"+(c.statut==="En preparation"?" selected":"")+">En preparation</option>";
+      html+="<option"+(c.statut==="En livraison"?" selected":"")+">En livraison</option>";
+      html+="<option"+(c.statut==="Livree"?" selected":"")+">Livree</option>";
+      html+="</select></td>";
+      html+="</tr>";
+    }
+    tb.innerHTML=html;
+  }).catch(function(e){console.log("Erreur:",e);});
+}
+
+charger();
+setInterval(charger,3000);
+</script>
+</body>
+</html>
