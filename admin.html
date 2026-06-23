@@ -73,12 +73,12 @@ function charger(){
       var c=d[i];
       var badge=c.statut==="En preparation"?"prep":"livr";
       html+="<tr>";
-      html+="<td><strong>"+c.n+"</strong></td>";
-      html+="<td>"+c.t+"</td>";
+      html+="<td><strong>"+c.numero+"</strong></td>";
+      html+="<td>"+c.telephone+"</td>";
       html+="<td>"+c.total+" FCFA</td>";
       html+="<td>"+c.date+"</td>";
       html+="<td><span class='"+badge+"'>"+c.statut+"</span></td>";
-      html+="<td><select onchange='changerStatut(\""+c.n+"\",this.value)'>";
+      html+="<td><select onchange='changerStatut(\""+c.numero+"\",this.value)'>";
       html+="<option"+(c.statut==="En preparation"?" selected":"")+">En preparation</option>";
       html+="<option"+(c.statut==="En livraison"?" selected":"")+">En livraison</option>";
       html+="<option"+(c.statut==="Livree"?" selected":"")+">Livree</option>";
