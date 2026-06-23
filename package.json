@@ -1,7 +1,7 @@
 {
   "name": "easyorderapp",
   "version": "1.0.0",
-  "description": "",
+  "description": "EasyOrder FMCG Bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -12,9 +12,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@supabase/supabase-js": "^2.108.2",
     "better-sqlite3": "^12.11.1",
-    "dotenv": "^17.4.2",
     "express": "^5.2.1"
   }
 }
