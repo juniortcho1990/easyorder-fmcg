@@ -54,7 +54,7 @@ function changerStatut(n,s){
 }
 
 function charger(){
-  fetch("http://localhost:3000/api/commandes").then(function(r){
+  fetch("/api/commandes").then(function(r){
     return r.json();
   }).then(function(d){
     document.getElementById("tc").textContent=d.length;
