@@ -74,7 +74,7 @@ function bot(tel,msg){
   const s=gs(tel);
   const m=String(msg).trim().toLowerCase();
   if(m==='bonjour'||m==='menu'){s.e='menu';return 'Bienvenue EasyOrder Cameroun!\n1 COMMANDER\n2 MES COMMANDES\n3 CONTACT';}
-  if(m==='commander'){s.e='cat';s.p=[];let r='CATALOGUE:\n';P.forEach(x=>r+=x.id+'. '+x.nom+' '+x.prix+' FCFA\n');return r+'0=panier CONFIRMER=valider';}
+  if(m==='commander'||m==='1'){s.e='cat';s.p=[];let r='CATALOGUE:\n';P.forEach(x=>r+=x.id+'. '+x.nom+' '+x.prix+' FCFA\n');return r+'0=panier CONFIRMER=valider';}
   if(m==='3')return 'Support: +237 600 000 000';
   if(s.e==='cat'&&!isNaN(m)&&m!=='0'){const p=P.find(x=>x.id===parseInt(m));if(!p)return 'Invalide';const ex=s.p.find(x=>x.id===p.id);if(ex)ex.q++;else s.p.push({...p,q:1});return p.nom+' ajoute!';}
   if(m==='0'){if(!s.p.length)return 'Panier vide';let t=0,r='PANIER:\n';s.p.forEach(p=>{t+=p.prix*p.q;r+=p.nom+' x'+p.q+'='+(p.prix*p.q)+'\n'});return r+'TOTAL:'+t+' FCFA\nTapez CONFIRMER';}
@@ -90,6 +90,107 @@ function bot(tel,msg){
   return 'Tapez MENU';
 }
 
+// ─────────────────────────────────────────────
+// FONCTION D'ENVOI DE MESSAGE WHATSAPP
+// ─────────────────────────────────────────────
+async function sendWhatsAppMessage(to, message) {
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const token = process.env.WHATSAPP_TOKEN;
+
+  if (!phoneNumberId || !token) {
+    console.error('❌ Variables WHATSAPP_PHONE_NUMBER_ID ou WHATSAPP_TOKEN manquantes');
+    return;
+  }
+
+  try {
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(
+      `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: to,
+          type: 'text',
+          text: { body: message }
+        })
+      }
+    );
+    const data = await response.json();
+    if (data.error) {
+      console.error('❌ Erreur Meta:', JSON.stringify(data.error));
+    } else {
+      console.log('✅ Message envoyé à', to);
+    }
+    return data;
+  } catch (err) {
+    console.error('❌ Erreur envoi WhatsApp:', err.message);
+  }
+}
+
+// ─────────────────────────────────────────────
+// WEBHOOK META — VÉRIFICATION (GET)
+// ─────────────────────────────────────────────
+app.get('/webhook', (req, res) => {
+  const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN;
+
+  const mode      = req.query['hub.mode'];
+  const token     = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  console.log('📡 Webhook GET reçu - mode:', mode, '| token ok:', token === VERIFY_TOKEN);
+
+  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    console.log('✅ Webhook vérifié par Meta !');
+    res.status(200).send(challenge);
+  } else {
+    console.error('❌ Webhook: token invalide');
+    res.sendStatus(403);
+  }
+});
+
+// ─────────────────────────────────────────────
+// WEBHOOK META — RÉCEPTION DES MESSAGES (POST)
+// ─────────────────────────────────────────────
+app.post('/webhook', async (req, res) => {
+  // Toujours répondre 200 immédiatement à Meta
+  res.sendStatus(200);
+
+  try {
+    const body = req.body;
+
+    if (body.object !== 'whatsapp_business_account') return;
+
+    const entry   = body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const value   = changes?.value;
+    const message = value?.messages?.[0];
+
+    if (!message) return; // ping de statut, ignorer
+
+    const from = message.from;           // ex: "237612345678"
+    const text = message.text?.body || '';
+
+    console.log(`📨 Message WhatsApp de ${from}: "${text}"`);
+
+    // Passer le message au bot
+    const reponse = bot(from, text);
+
+    // Renvoyer la réponse via WhatsApp
+    await sendWhatsAppMessage(from, reponse);
+
+  } catch (err) {
+    console.error('❌ Erreur traitement webhook:', err.message);
+  }
+});
+
+// ─────────────────────────────────────────────
+// ROUTES EXISTANTES
+// ─────────────────────────────────────────────
 app.get('/test',(req,res)=>res.json({reponse:bot(req.query.tel||'237',req.query.msg||'bonjour')}));
 app.get('/api/commandes',async(req,res)=>res.json(await getCommandes()));
 app.post('/api/commandes/:num/statut',async(req,res)=>{await updateStatut(req.params.num,req.body.statut);res.json({ok:true});});
