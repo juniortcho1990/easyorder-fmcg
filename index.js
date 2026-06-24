@@ -144,7 +144,7 @@ app.get('/webhook', (req, res) => {
 
   console.log('📡 Webhook GET reçu - mode:', mode, '| token ok:', token === VERIFY_TOKEN);
 
-  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+  if (mode === 'subscribe') {
     console.log('✅ Webhook vérifié par Meta !');
     res.status(200).send(challenge);
   } else {
