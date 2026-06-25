@@ -249,7 +249,6 @@ async function handleMessage(from, msg, buttonId) {
   // ── BOUTON COMMANDER ──
   if (bid === 'btn_commander' || (s.e === 'menu' && (m === '1' || m === 'commander'))) {
     s.e = 'cat';
-    s.p = [];
     return sendList(from,
       '📦 Choisissez vos produits:\n\n0 = voir panier\nCONFIRMER = valider',
       '📦 Voir le catalogue',
