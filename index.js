@@ -46,6 +46,19 @@ async function getCommandes() {
   return db.prepare('SELECT * FROM commandes ORDER BY id DESC').all();
 }
 
+async function getCommandesClient(tel) {
+  if (usePostgres) {
+    const r = await pool.query(
+      'SELECT * FROM commandes WHERE telephone=$1 ORDER BY id DESC LIMIT 5',
+      [tel]
+    );
+    return r.rows;
+  }
+  return db.prepare(
+    'SELECT * FROM commandes WHERE telephone=? ORDER BY id DESC LIMIT 5'
+  ).all(tel);
+}
+
 async function insertCommande(n, tel, t, date) {
   if (usePostgres) {
     await pool.query('INSERT INTO commandes (numero,telephone,total,statut,date) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING', [n, tel, t, 'En preparation', date]);
@@ -77,7 +90,7 @@ const S = {};
 function gs(t) { if(!S[t]) S[t] = {e:'menu', p:[]}; return S[t]; }
 
 // ─────────────────────────────────────────────
-// ENVOI MESSAGE WHATSAPP — TEXTE SIMPLE
+// FONCTIONS D'ENVOI
 // ─────────────────────────────────────────────
 async function sendText(to, message) {
   return sendAPI(to, {
@@ -88,9 +101,6 @@ async function sendText(to, message) {
   });
 }
 
-// ─────────────────────────────────────────────
-// ENVOI MESSAGE WHATSAPP — BOUTONS (max 3)
-// ─────────────────────────────────────────────
 async function sendButtons(to, body, buttons) {
   return sendAPI(to, {
     messaging_product: 'whatsapp',
@@ -100,7 +110,7 @@ async function sendButtons(to, body, buttons) {
       type: 'button',
       body: { text: body },
       action: {
-        buttons: buttons.map((b, i) => ({
+        buttons: buttons.map(b => ({
           type: 'reply',
           reply: { id: b.id, title: b.title }
         }))
@@ -109,9 +119,6 @@ async function sendButtons(to, body, buttons) {
   });
 }
 
-// ─────────────────────────────────────────────
-// ENVOI MESSAGE WHATSAPP — LISTE (max 10 items)
-// ─────────────────────────────────────────────
 async function sendList(to, body, buttonText, sections) {
   return sendAPI(to, {
     messaging_product: 'whatsapp',
@@ -128,9 +135,6 @@ async function sendList(to, body, buttonText, sections) {
   });
 }
 
-// ─────────────────────────────────────────────
-// FONCTION D'ENVOI GÉNÉRIQUE
-// ─────────────────────────────────────────────
 async function sendAPI(to, payload) {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const token = process.env.WHATSAPP_TOKEN;
@@ -185,7 +189,32 @@ async function sendAPI(to, payload) {
 }
 
 // ─────────────────────────────────────────────
-// LOGIQUE BOT AVEC BOUTONS
+// FONCTION CATALOGUE — ouvre directement la liste
+// ─────────────────────────────────────────────
+async function ouvrirCatalogue(from, s) {
+  s.e = 'cat';
+  // NE PAS vider le panier pour permettre l'ajout multiple
+  let panierInfo = '';
+  if (s.p.length > 0) {
+    const total = s.p.reduce((a, x) => a + x.prix * x.q, 0);
+    panierInfo = '\n\n🛒 Panier actuel: ' + total + ' FCFA (' + s.p.length + ' produit(s))';
+  }
+  return sendList(from,
+    '📦 Choisissez un produit à ajouter:' + panierInfo,
+    '📦 Voir le catalogue',
+    [{
+      title: 'Nos produits',
+      rows: P.map(x => ({
+        id: x.id,
+        title: x.nom,
+        description: x.prix + ' FCFA'
+      }))
+    }]
+  );
+}
+
+// ─────────────────────────────────────────────
+// LOGIQUE BOT PRINCIPALE
 // ─────────────────────────────────────────────
 async function handleMessage(from, msg, buttonId) {
   const s = gs(from);
@@ -208,6 +237,38 @@ async function handleMessage(from, msg, buttonId) {
     );
   }
 
+  // ── COMMANDER — ouvre directement le catalogue ──
+  if (bid === 'btn_commander' || (s.e === 'menu' && (m === '1' || m === 'commander'))) {
+    return ouvrirCatalogue(from, s);
+  }
+
+  // ── AJOUTER UN PRODUIT — rouvre le catalogue sans vider le panier ──
+  if (bid === 'btn_ajouter') {
+    return ouvrirCatalogue(from, s);
+  }
+
+  // ── SÉLECTION PRODUIT DEPUIS LA LISTE ──
+  if (bid && bid.startsWith('p')) {
+    const p = P.find(x => x.id === bid);
+    if (p) {
+      s.e = 'cat';
+      const ex = s.p.find(x => x.id === p.id);
+      if (ex) ex.q++;
+      else s.p.push({...p, q:1});
+      const total = s.p.reduce((a, x) => a + x.prix * x.q, 0);
+      let panierDetail = '';
+      s.p.forEach(x => { panierDetail += '• ' + x.nom + ' x' + x.q + ' = ' + (x.prix * x.q) + ' FCFA\n'; });
+      return sendButtons(from,
+        '✅ ' + p.nom + ' ajouté!\n\n🛒 PANIER:\n' + panierDetail + '\nTOTAL: ' + total + ' FCFA',
+        [
+          { id: 'btn_ajouter',   title: '➕ Ajouter produit' },
+          { id: 'btn_confirmer', title: '✅ Confirmer' },
+          { id: 'btn_menu',      title: '❌ Annuler' }
+        ]
+      );
+    }
+  }
+
   // ── VOIR PANIER ──
   if (m === '0' || bid === 'btn_panier') {
     if (!s.p.length) {
@@ -224,14 +285,19 @@ async function handleMessage(from, msg, buttonId) {
     r += '\nTOTAL: ' + t + ' FCFA';
     return sendButtons(from, r, [
       { id: 'btn_confirmer', title: '✅ Confirmer' },
-      { id: 'btn_commander', title: '➕ Ajouter' },
+      { id: 'btn_ajouter',   title: '➕ Ajouter' },
       { id: 'btn_menu',      title: '❌ Annuler' }
     ]);
   }
 
   // ── CONFIRMER COMMANDE ──
   if (m === 'confirmer' || bid === 'btn_confirmer') {
-    if (!s.p.length) return sendText(from, 'Votre panier est vide.');
+    if (!s.p.length) {
+      return sendButtons(from,
+        '🛒 Votre panier est vide.',
+        [{ id: 'btn_commander', title: '🛒 Commander' }]
+      );
+    }
     const t = s.p.reduce((a, p) => a + p.prix * p.q, 0);
     const n = 'CMD-' + Date.now().toString().slice(-6);
     const date = new Date().toLocaleDateString('fr-FR');
@@ -246,56 +312,38 @@ async function handleMessage(from, msg, buttonId) {
     );
   }
 
-  // ── BOUTON COMMANDER ──
-  if (bid === 'btn_commander' || (s.e === 'menu' && (m === '1' || m === 'commander'))) {
-    s.e = 'cat';
-    return sendList(from,
-      '📦 Choisissez vos produits:\n\n0 = voir panier\nCONFIRMER = valider',
-      '📦 Voir le catalogue',
-      [{
-        title: 'Nos produits',
-        rows: P.map(x => ({
-          id: x.id,
-          title: x.nom,
-          description: x.prix + ' FCFA'
-        }))
-      }]
-    );
-  }
-
-  // ── BOUTON MES COMMANDES ──
+  // ── MES COMMANDES — affiche les commandes du client ──
   if (bid === 'btn_commandes' || (s.e === 'menu' && m === '2')) {
-    return sendButtons(from,
-      '📋 Vos commandes sont visibles sur le dashboard admin.',
-      [{ id: 'btn_menu', title: '🏠 Menu principal' }]
-    );
-  }
-
-  // ── BOUTON CONTACT ──
-  if (bid === 'btn_contact' || (s.e === 'menu' && m === '3')) {
-    return sendButtons(from,
-      '📞 Support ZYNTRA:\n\n+237 651 16 15 77\nDisponible 8h-20h',
-      [{ id: 'btn_menu', title: '🏠 Menu principal' }]
-    );
-  }
-
-  // ── SÉLECTION PRODUIT DEPUIS LA LISTE ──
-  if (s.e === 'cat' && bid && bid.startsWith('p')) {
-    const p = P.find(x => x.id === bid);
-    if (p) {
-      const ex = s.p.find(x => x.id === p.id);
-      if (ex) ex.q++;
-      else s.p.push({...p, q:1});
-      const total = s.p.reduce((a, x) => a + x.prix * x.q, 0);
+    const commandes = await getCommandesClient(from);
+    if (!commandes.length) {
       return sendButtons(from,
-        '✅ ' + p.nom + ' ajouté!\n\nTotal panier: ' + total + ' FCFA',
+        '📋 Vous n\'avez pas encore de commandes.\n\nPassez votre première commande!',
         [
-          { id: 'btn_commander', title: '➕ Ajouter produit' },
-          { id: 'btn_panier',    title: '🛒 Voir panier' },
-          { id: 'btn_confirmer', title: '✅ Confirmer' }
+          { id: 'btn_commander', title: '🛒 Commander' },
+          { id: 'btn_menu',      title: '🏠 Menu principal' }
         ]
       );
     }
+    let msg = '📋 VOS COMMANDES:\n\n';
+    commandes.forEach(c => {
+      msg += '• ' + c.numero + '\n';
+      msg += '  ' + c.total + ' FCFA - ' + c.statut + '\n';
+      msg += '  📅 ' + c.date + '\n\n';
+    });
+    return sendButtons(from, msg,
+      [
+        { id: 'btn_commander', title: '🛒 Commander' },
+        { id: 'btn_menu',      title: '🏠 Menu principal' }
+      ]
+    );
+  }
+
+  // ── CONTACT ──
+  if (bid === 'btn_contact' || (s.e === 'menu' && m === '3')) {
+    return sendButtons(from,
+      '📞 Support ZYNTRA:\n\n+237 651 16 15 77\nDisponible 8h - 20h',
+      [{ id: 'btn_menu', title: '🏠 Menu principal' }]
+    );
   }
 
   // ── FALLBACK ──
@@ -344,26 +392,22 @@ app.post('/webhook', async (req, res) => {
 
     const from = message.from;
 
-    // Message texte normal
     if (message.type === 'text') {
       const text = message.text?.body || '';
       console.log(`📨 Texte de ${from}: "${text}"`);
       await handleMessage(from, text, null);
     }
 
-    // Message interactif (bouton ou liste)
     if (message.type === 'interactive') {
       const interactive = message.interactive;
-
       if (interactive.type === 'button_reply') {
-        const buttonId = interactive.button_reply.id;
+        const buttonId    = interactive.button_reply.id;
         const buttonTitle = interactive.button_reply.title;
         console.log(`🔘 Bouton de ${from}: "${buttonTitle}" (${buttonId})`);
         await handleMessage(from, buttonTitle, buttonId);
       }
-
       if (interactive.type === 'list_reply') {
-        const listId = interactive.list_reply.id;
+        const listId    = interactive.list_reply.id;
         const listTitle = interactive.list_reply.title;
         console.log(`📋 Liste de ${from}: "${listTitle}" (${listId})`);
         await handleMessage(from, listTitle, listId);
