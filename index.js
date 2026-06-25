@@ -66,85 +66,72 @@ async function updateStatut(num, statut) {
 // CATALOGUE
 // ─────────────────────────────────────────────
 const P = [
-  {id:1, nom:'Castel 65cl',     prix:500},
-  {id:2, nom:'Beaufort 65cl',   prix:500},
-  {id:3, nom:'Malta 65cl',      prix:400},
-  {id:4, nom:'CocaCola 50cl',   prix:400},
-  {id:5, nom:'Supermont 1.5L',  prix:300}
+  {id:'p1', nom:'Castel 65cl',    prix:500},
+  {id:'p2', nom:'Beaufort 65cl',  prix:500},
+  {id:'p3', nom:'Malta 65cl',     prix:400},
+  {id:'p4', nom:'CocaCola 50cl',  prix:400},
+  {id:'p5', nom:'Supermont 1.5L', prix:300}
 ];
 
 const S = {};
 function gs(t) { if(!S[t]) S[t] = {e:'menu', p:[]}; return S[t]; }
 
-function bot(tel, msg) {
-  const s = gs(tel);
-  const m = String(msg).trim().toLowerCase();
-
-  console.log(`🔍 État session ${tel}: "${s.e}" | msg: "${m}"`);
-
-  // ── COMMANDES GLOBALES (toujours disponibles) ──
-  if (m === 'menu' || m === 'bonjour' || m === 'hello' || m === 'salut' || m === 'start') {
-    s.e = 'menu';
-    s.p = [];
-    return 'Bienvenue sur ZYNTRA! 🛒\n\nTapez le numero de votre choix:\n\n1 - COMMANDER\n2 - MES COMMANDES\n3 - CONTACT\n\n(Tapez MENU a tout moment pour recommencer)';
-  }
-
-  if (m === 'confirmer') {
-    if (!s.p.length) return 'Votre panier est vide.\nTapez 1 pour commander.';
-    const t = s.p.reduce((a, p) => a + p.prix * p.q, 0);
-    const n = 'CMD-' + Date.now().toString().slice(-6);
-    const date = new Date().toLocaleDateString('fr-FR');
-    insertCommande(n, tel, t, date);
-    s.p = []; s.e = 'menu';
-    return '✅ COMMANDE CONFIRMEE!\n\nNumero: ' + n + '\nTotal: ' + t + ' FCFA\n\nMerci pour votre commande ZYNTRA!\nTapez MENU pour continuer.';
-  }
-
-  if (m === '0') {
-    if (!s.p.length) return 'Votre panier est vide.\nTapez 1 pour commander.';
-    let t = 0, r = '🛒 VOTRE PANIER:\n\n';
-    s.p.forEach(p => { t += p.prix * p.q; r += '• ' + p.nom + ' x' + p.q + ' = ' + (p.prix * p.q) + ' FCFA\n'; });
-    return r + '\nTOTAL: ' + t + ' FCFA\n\nTapez CONFIRMER pour valider\nTapez MENU pour annuler';
-  }
-
-  // ── ÉTAT MENU ──
-  if (s.e === 'menu') {
-    if (m === '1' || m === 'commander') {
-      s.e = 'cat';
-      s.p = [];
-      let r = '📦 CATALOGUE:\n\n';
-      P.forEach(x => r += x.id + '. ' + x.nom + ' - ' + x.prix + ' FCFA\n');
-      return r + '\nTapez le numero du produit pour l\'ajouter\n0 = voir panier\nCONFIRMER = valider';
-    }
-    if (m === '2') {
-      return '📋 Vos commandes sont visibles sur le dashboard admin.\n\nTapez MENU pour revenir.';
-    }
-    if (m === '3') {
-      return '📞 Support ZYNTRA:\n\n+237 651 16 15 77\n\nTapez MENU pour revenir.';
-    }
-    return 'Tapez 1, 2 ou 3 pour choisir une option.\nOu tapez MENU pour recommencer.';
-  }
-
-  // ── ÉTAT CATALOGUE ──
-  if (s.e === 'cat') {
-    const num = parseInt(m);
-    if (!isNaN(num) && num >= 1 && num <= P.length) {
-      const p = P.find(x => x.id === num);
-      const ex = s.p.find(x => x.id === p.id);
-      if (ex) ex.q++;
-      else s.p.push({...p, q:1});
-      const total = s.p.reduce((a, x) => a + x.prix * x.q, 0);
-      return '✅ ' + p.nom + ' ajoute au panier!\n\nTotal panier: ' + total + ' FCFA\n\nContinuez a commander\n0 = voir panier\nCONFIRMER = valider';
-    }
-    return 'Tapez un numero entre 1 et ' + P.length + ' pour choisir un produit.\n0 = voir panier\nCONFIRMER = valider\nMENU = recommencer';
-  }
-
-  return 'Tapez MENU pour commencer.';
+// ─────────────────────────────────────────────
+// ENVOI MESSAGE WHATSAPP — TEXTE SIMPLE
+// ─────────────────────────────────────────────
+async function sendText(to, message) {
+  return sendAPI(to, {
+    messaging_product: 'whatsapp',
+    to: to,
+    type: 'text',
+    text: { body: message }
+  });
 }
 
 // ─────────────────────────────────────────────
-// ENVOI MESSAGE WHATSAPP
+// ENVOI MESSAGE WHATSAPP — BOUTONS (max 3)
 // ─────────────────────────────────────────────
-async function sendWhatsAppMessage(to, message) {
+async function sendButtons(to, body, buttons) {
+  return sendAPI(to, {
+    messaging_product: 'whatsapp',
+    to: to,
+    type: 'interactive',
+    interactive: {
+      type: 'button',
+      body: { text: body },
+      action: {
+        buttons: buttons.map((b, i) => ({
+          type: 'reply',
+          reply: { id: b.id, title: b.title }
+        }))
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+// ENVOI MESSAGE WHATSAPP — LISTE (max 10 items)
+// ─────────────────────────────────────────────
+async function sendList(to, body, buttonText, sections) {
+  return sendAPI(to, {
+    messaging_product: 'whatsapp',
+    to: to,
+    type: 'interactive',
+    interactive: {
+      type: 'list',
+      body: { text: body },
+      action: {
+        button: buttonText,
+        sections: sections
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+// FONCTION D'ENVOI GÉNÉRIQUE
+// ─────────────────────────────────────────────
+async function sendAPI(to, payload) {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const token = process.env.WHATSAPP_TOKEN;
 
@@ -155,12 +142,7 @@ async function sendWhatsAppMessage(to, message) {
 
   return new Promise((resolve) => {
     const https = require('https');
-    const data = JSON.stringify({
-      messaging_product: 'whatsapp',
-      to: to,
-      type: 'text',
-      text: { body: message }
-    });
+    const data = JSON.stringify(payload);
 
     const options = {
       hostname: 'graph.facebook.com',
@@ -203,6 +185,128 @@ async function sendWhatsAppMessage(to, message) {
 }
 
 // ─────────────────────────────────────────────
+// LOGIQUE BOT AVEC BOUTONS
+// ─────────────────────────────────────────────
+async function handleMessage(from, msg, buttonId) {
+  const s = gs(from);
+  const m = String(msg).trim().toLowerCase();
+  const bid = buttonId || '';
+
+  console.log(`🔍 État: "${s.e}" | msg: "${m}" | buttonId: "${bid}"`);
+
+  // ── MENU PRINCIPAL ──
+  if (m === 'menu' || m === 'bonjour' || m === 'hello' || m === 'salut' || m === 'start' || bid === 'btn_menu') {
+    s.e = 'menu';
+    s.p = [];
+    return sendButtons(from,
+      'Bienvenue sur ZYNTRA! 🛒\n\nComment puis-je vous aider?',
+      [
+        { id: 'btn_commander', title: '🛒 Commander' },
+        { id: 'btn_commandes', title: '📦 Mes commandes' },
+        { id: 'btn_contact',   title: '📞 Contact' }
+      ]
+    );
+  }
+
+  // ── VOIR PANIER ──
+  if (m === '0' || bid === 'btn_panier') {
+    if (!s.p.length) {
+      return sendButtons(from,
+        '🛒 Votre panier est vide.',
+        [
+          { id: 'btn_commander', title: '🛒 Commander' },
+          { id: 'btn_menu',      title: '🏠 Menu principal' }
+        ]
+      );
+    }
+    let t = 0, r = '🛒 VOTRE PANIER:\n\n';
+    s.p.forEach(p => { t += p.prix * p.q; r += '• ' + p.nom + ' x' + p.q + ' = ' + (p.prix * p.q) + ' FCFA\n'; });
+    r += '\nTOTAL: ' + t + ' FCFA';
+    return sendButtons(from, r, [
+      { id: 'btn_confirmer', title: '✅ Confirmer' },
+      { id: 'btn_commander', title: '➕ Ajouter' },
+      { id: 'btn_menu',      title: '❌ Annuler' }
+    ]);
+  }
+
+  // ── CONFIRMER COMMANDE ──
+  if (m === 'confirmer' || bid === 'btn_confirmer') {
+    if (!s.p.length) return sendText(from, 'Votre panier est vide.');
+    const t = s.p.reduce((a, p) => a + p.prix * p.q, 0);
+    const n = 'CMD-' + Date.now().toString().slice(-6);
+    const date = new Date().toLocaleDateString('fr-FR');
+    await insertCommande(n, from, t, date);
+    s.p = []; s.e = 'menu';
+    return sendButtons(from,
+      '✅ COMMANDE CONFIRMEE!\n\nNumero: ' + n + '\nTotal: ' + t + ' FCFA\n\nMerci pour votre commande ZYNTRA! 🎉',
+      [
+        { id: 'btn_commander', title: '🛒 Nouvelle commande' },
+        { id: 'btn_menu',      title: '🏠 Menu principal' }
+      ]
+    );
+  }
+
+  // ── BOUTON COMMANDER ──
+  if (bid === 'btn_commander' || (s.e === 'menu' && (m === '1' || m === 'commander'))) {
+    s.e = 'cat';
+    s.p = [];
+    return sendList(from,
+      '📦 Choisissez vos produits:\n\n0 = voir panier\nCONFIRMER = valider',
+      '📦 Voir le catalogue',
+      [{
+        title: 'Nos produits',
+        rows: P.map(x => ({
+          id: x.id,
+          title: x.nom,
+          description: x.prix + ' FCFA'
+        }))
+      }]
+    );
+  }
+
+  // ── BOUTON MES COMMANDES ──
+  if (bid === 'btn_commandes' || (s.e === 'menu' && m === '2')) {
+    return sendButtons(from,
+      '📋 Vos commandes sont visibles sur le dashboard admin.',
+      [{ id: 'btn_menu', title: '🏠 Menu principal' }]
+    );
+  }
+
+  // ── BOUTON CONTACT ──
+  if (bid === 'btn_contact' || (s.e === 'menu' && m === '3')) {
+    return sendButtons(from,
+      '📞 Support ZYNTRA:\n\n+237 651 16 15 77\nDisponible 8h-20h',
+      [{ id: 'btn_menu', title: '🏠 Menu principal' }]
+    );
+  }
+
+  // ── SÉLECTION PRODUIT DEPUIS LA LISTE ──
+  if (s.e === 'cat' && bid && bid.startsWith('p')) {
+    const p = P.find(x => x.id === bid);
+    if (p) {
+      const ex = s.p.find(x => x.id === p.id);
+      if (ex) ex.q++;
+      else s.p.push({...p, q:1});
+      const total = s.p.reduce((a, x) => a + x.prix * x.q, 0);
+      return sendButtons(from,
+        '✅ ' + p.nom + ' ajouté!\n\nTotal panier: ' + total + ' FCFA',
+        [
+          { id: 'btn_commander', title: '➕ Ajouter produit' },
+          { id: 'btn_panier',    title: '🛒 Voir panier' },
+          { id: 'btn_confirmer', title: '✅ Confirmer' }
+        ]
+      );
+    }
+  }
+
+  // ── FALLBACK ──
+  return sendButtons(from,
+    'Tapez MENU pour recommencer. 👋',
+    [{ id: 'btn_menu', title: '🏠 Menu principal' }]
+  );
+}
+
+// ─────────────────────────────────────────────
 // WEBHOOK META — VÉRIFICATION (GET)
 // ─────────────────────────────────────────────
 app.get('/webhook', (req, res) => {
@@ -240,12 +344,32 @@ app.post('/webhook', async (req, res) => {
     if (!message) return;
 
     const from = message.from;
-    const text = message.text?.body || '';
 
-    console.log(`📨 Message WhatsApp de ${from}: "${text}"`);
+    // Message texte normal
+    if (message.type === 'text') {
+      const text = message.text?.body || '';
+      console.log(`📨 Texte de ${from}: "${text}"`);
+      await handleMessage(from, text, null);
+    }
 
-    const reponse = bot(from, text);
-    await sendWhatsAppMessage(from, reponse);
+    // Message interactif (bouton ou liste)
+    if (message.type === 'interactive') {
+      const interactive = message.interactive;
+
+      if (interactive.type === 'button_reply') {
+        const buttonId = interactive.button_reply.id;
+        const buttonTitle = interactive.button_reply.title;
+        console.log(`🔘 Bouton de ${from}: "${buttonTitle}" (${buttonId})`);
+        await handleMessage(from, buttonTitle, buttonId);
+      }
+
+      if (interactive.type === 'list_reply') {
+        const listId = interactive.list_reply.id;
+        const listTitle = interactive.list_reply.title;
+        console.log(`📋 Liste de ${from}: "${listTitle}" (${listId})`);
+        await handleMessage(from, listTitle, listId);
+      }
+    }
 
   } catch (err) {
     console.error('❌ Erreur traitement webhook:', err.message);
@@ -260,7 +384,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/test', (req, res) => res.json({reponse: bot(req.query.tel||'237', req.query.msg||'menu')}));
+app.get('/test', (req, res) => res.json({status: 'ZYNTRA bot actif'}));
 app.get('/api/commandes', async (req, res) => res.json(await getCommandes()));
 app.post('/api/commandes/:num/statut', async (req, res) => { await updateStatut(req.params.num, req.body.statut); res.json({ok:true}); });
 app.get('/admin', (req, res) => res.send(fs.readFileSync('admin.html', 'utf8')));
