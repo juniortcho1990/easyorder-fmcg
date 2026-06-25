@@ -16,28 +16,79 @@ if (process.env.DATABASE_URL) {
     ssl: { rejectUnauthorized: false }
   });
   usePostgres = true;
-  pool.query(`CREATE TABLE IF NOT EXISTS commandes (
-    id SERIAL PRIMARY KEY,
-    numero TEXT UNIQUE,
-    telephone TEXT,
-    total INTEGER,
-    statut TEXT DEFAULT 'En preparation',
-    date TEXT
-  );`).then(()=>console.log('PostgreSQL pret!'));
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS commandes (
+      id SERIAL PRIMARY KEY,
+      numero TEXT UNIQUE,
+      telephone TEXT,
+      total INTEGER,
+      statut TEXT DEFAULT 'En preparation',
+      date TEXT
+    );
+    CREATE TABLE IF NOT EXISTS sessions (
+      telephone TEXT PRIMARY KEY,
+      etat TEXT DEFAULT 'menu',
+      panier TEXT DEFAULT '[]',
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+  `).then(()=>console.log('PostgreSQL pret!'));
 } else {
   const Database = require('better-sqlite3');
   db = new Database('easyorder.db');
-  db.exec(`CREATE TABLE IF NOT EXISTS commandes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    numero TEXT UNIQUE,
-    telephone TEXT,
-    total INTEGER,
-    statut TEXT DEFAULT 'En preparation',
-    date TEXT
-  );`);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS commandes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      numero TEXT UNIQUE,
+      telephone TEXT,
+      total INTEGER,
+      statut TEXT DEFAULT 'En preparation',
+      date TEXT
+    );
+    CREATE TABLE IF NOT EXISTS sessions (
+      telephone TEXT PRIMARY KEY,
+      etat TEXT DEFAULT 'menu',
+      panier TEXT DEFAULT '[]',
+      updated_at TEXT
+    );
+  `);
   console.log('SQLite pret!');
 }
 
+// ─────────────────────────────────────────────
+// GESTION SESSIONS PERSISTANTES
+// ─────────────────────────────────────────────
+async function getSession(tel) {
+  if (usePostgres) {
+    const r = await pool.query('SELECT * FROM sessions WHERE telephone=$1', [tel]);
+    if (r.rows.length === 0) {
+      await pool.query('INSERT INTO sessions (telephone, etat, panier) VALUES ($1,$2,$3)', [tel, 'menu', '[]']);
+      return { e: 'menu', p: [] };
+    }
+    return { e: r.rows[0].etat, p: JSON.parse(r.rows[0].panier) };
+  } else {
+    const row = db.prepare('SELECT * FROM sessions WHERE telephone=?').get(tel);
+    if (!row) {
+      db.prepare('INSERT INTO sessions (telephone, etat, panier, updated_at) VALUES (?,?,?,?)').run(tel, 'menu', '[]', new Date().toISOString());
+      return { e: 'menu', p: [] };
+    }
+    return { e: row.etat, p: JSON.parse(row.panier) };
+  }
+}
+
+async function saveSession(tel, s) {
+  if (usePostgres) {
+    await pool.query(
+      'INSERT INTO sessions (telephone, etat, panier, updated_at) VALUES ($1,$2,$3,NOW()) ON CONFLICT (telephone) DO UPDATE SET etat=$2, panier=$3, updated_at=NOW()',
+      [tel, s.e, JSON.stringify(s.p)]
+    );
+  } else {
+    db.prepare('INSERT OR REPLACE INTO sessions (telephone, etat, panier, updated_at) VALUES (?,?,?,?)').run(tel, s.e, JSON.stringify(s.p), new Date().toISOString());
+  }
+}
+
+// ─────────────────────────────────────────────
+// COMMANDES
+// ─────────────────────────────────────────────
 async function getCommandes() {
   if (usePostgres) {
     const r = await pool.query('SELECT * FROM commandes ORDER BY id DESC');
@@ -48,20 +99,15 @@ async function getCommandes() {
 
 async function getCommandesClient(tel) {
   if (usePostgres) {
-    const r = await pool.query(
-      'SELECT * FROM commandes WHERE telephone=$1 ORDER BY id DESC LIMIT 5',
-      [tel]
-    );
+    const r = await pool.query('SELECT * FROM commandes WHERE telephone=$1 ORDER BY id DESC LIMIT 5', [tel]);
     return r.rows;
   }
-  return db.prepare(
-    'SELECT * FROM commandes WHERE telephone=? ORDER BY id DESC LIMIT 5'
-  ).all(tel);
+  return db.prepare('SELECT * FROM commandes WHERE telephone=? ORDER BY id DESC LIMIT 5').all(tel);
 }
 
 async function insertCommande(n, tel, t, date) {
   if (usePostgres) {
-    await pool.query('INSERT INTO commandes (numero,telephone,total,statut,date) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING', [n, tel, t, 'En preparation', date]);
+    await pool.query('INSERT INTO commandes (numero,telephone,total,statut,date) VALUES ($1,$2,$3,$4,$5)', [n, tel, t, 'En preparation', date]);
   } else {
     db.prepare('INSERT OR IGNORE INTO commandes (numero,telephone,total,statut,date) VALUES (?,?,?,?,?)').run(n, tel, t, 'En preparation', date);
   }
@@ -85,9 +131,6 @@ const P = [
   {id:'p4', nom:'CocaCola 50cl',  prix:400},
   {id:'p5', nom:'Supermont 1.5L', prix:300}
 ];
-
-const S = {};
-function gs(t) { if(!S[t]) S[t] = {e:'menu', p:[]}; return S[t]; }
 
 // ─────────────────────────────────────────────
 // FONCTIONS D'ENVOI
@@ -147,7 +190,6 @@ async function sendAPI(to, payload) {
   return new Promise((resolve) => {
     const https = require('https');
     const data = JSON.stringify(payload);
-
     const options = {
       hostname: 'graph.facebook.com',
       path: `/v19.0/${phoneNumberId}/messages`,
@@ -158,18 +200,14 @@ async function sendAPI(to, payload) {
         'Content-Length': Buffer.byteLength(data)
       }
     };
-
     const req = https.request(options, (res) => {
       let d = '';
       res.on('data', c => d += c);
       res.on('end', () => {
         try {
           const result = JSON.parse(d);
-          if (result.error) {
-            console.error('❌ Erreur Meta:', JSON.stringify(result.error));
-          } else {
-            console.log('✅ Message envoyé à', to);
-          }
+          if (result.error) console.error('❌ Erreur Meta:', JSON.stringify(result.error));
+          else console.log('✅ Message envoyé à', to);
           resolve(result);
         } catch(e) {
           console.error('❌ Erreur parsing:', e.message);
@@ -177,39 +215,27 @@ async function sendAPI(to, payload) {
         }
       });
     });
-
-    req.on('error', (err) => {
-      console.error('❌ Erreur réseau:', err.message);
-      resolve(null);
-    });
-
+    req.on('error', (err) => { console.error('❌ Erreur réseau:', err.message); resolve(null); });
     req.write(data);
     req.end();
   });
 }
 
 // ─────────────────────────────────────────────
-// FONCTION CATALOGUE — ouvre directement la liste
+// OUVRIR CATALOGUE
 // ─────────────────────────────────────────────
 async function ouvrirCatalogue(from, s) {
   s.e = 'cat';
-  // NE PAS vider le panier pour permettre l'ajout multiple
+  await saveSession(from, s);
   let panierInfo = '';
   if (s.p.length > 0) {
     const total = s.p.reduce((a, x) => a + x.prix * x.q, 0);
-    panierInfo = '\n\n🛒 Panier actuel: ' + total + ' FCFA (' + s.p.length + ' produit(s))';
+    panierInfo = '\n\n🛒 Panier: ' + total + ' FCFA (' + s.p.length + ' produit(s))';
   }
   return sendList(from,
-    '📦 Choisissez un produit à ajouter:' + panierInfo,
+    '📦 Choisissez un produit:' + panierInfo,
     '📦 Voir le catalogue',
-    [{
-      title: 'Nos produits',
-      rows: P.map(x => ({
-        id: x.id,
-        title: x.nom,
-        description: x.prix + ' FCFA'
-      }))
-    }]
+    [{ title: 'Nos produits', rows: P.map(x => ({ id: x.id, title: x.nom, description: x.prix + ' FCFA' })) }]
   );
 }
 
@@ -217,7 +243,7 @@ async function ouvrirCatalogue(from, s) {
 // LOGIQUE BOT PRINCIPALE
 // ─────────────────────────────────────────────
 async function handleMessage(from, msg, buttonId) {
-  const s = gs(from);
+  const s = await getSession(from);
   const m = String(msg).trim().toLowerCase();
   const bid = buttonId || '';
 
@@ -225,8 +251,8 @@ async function handleMessage(from, msg, buttonId) {
 
   // ── MENU PRINCIPAL ──
   if (m === 'menu' || m === 'bonjour' || m === 'hello' || m === 'salut' || m === 'start' || bid === 'btn_menu') {
-    s.e = 'menu';
-    s.p = [];
+    s.e = 'menu'; s.p = [];
+    await saveSession(from, s);
     return sendButtons(from,
       'Bienvenue sur ZYNTRA! 🛒\n\nComment puis-je vous aider?',
       [
@@ -242,12 +268,12 @@ async function handleMessage(from, msg, buttonId) {
     return ouvrirCatalogue(from, s);
   }
 
-  // ── AJOUTER UN PRODUIT — rouvre le catalogue sans vider le panier ──
+  // ── AJOUTER PRODUIT — rouvre le catalogue ──
   if (bid === 'btn_ajouter') {
     return ouvrirCatalogue(from, s);
   }
 
-  // ── SÉLECTION PRODUIT DEPUIS LA LISTE ──
+  // ── SÉLECTION PRODUIT ──
   if (bid && bid.startsWith('p')) {
     const p = P.find(x => x.id === bid);
     if (p) {
@@ -255,6 +281,7 @@ async function handleMessage(from, msg, buttonId) {
       const ex = s.p.find(x => x.id === p.id);
       if (ex) ex.q++;
       else s.p.push({...p, q:1});
+      await saveSession(from, s);
       const total = s.p.reduce((a, x) => a + x.prix * x.q, 0);
       let panierDetail = '';
       s.p.forEach(x => { panierDetail += '• ' + x.nom + ' x' + x.q + ' = ' + (x.prix * x.q) + ' FCFA\n'; });
@@ -272,8 +299,7 @@ async function handleMessage(from, msg, buttonId) {
   // ── VOIR PANIER ──
   if (m === '0' || bid === 'btn_panier') {
     if (!s.p.length) {
-      return sendButtons(from,
-        '🛒 Votre panier est vide.',
+      return sendButtons(from, '🛒 Votre panier est vide.',
         [
           { id: 'btn_commander', title: '🛒 Commander' },
           { id: 'btn_menu',      title: '🏠 Menu principal' }
@@ -293,8 +319,7 @@ async function handleMessage(from, msg, buttonId) {
   // ── CONFIRMER COMMANDE ──
   if (m === 'confirmer' || bid === 'btn_confirmer') {
     if (!s.p.length) {
-      return sendButtons(from,
-        '🛒 Votre panier est vide.',
+      return sendButtons(from, '🛒 Votre panier est vide.',
         [{ id: 'btn_commander', title: '🛒 Commander' }]
       );
     }
@@ -303,6 +328,7 @@ async function handleMessage(from, msg, buttonId) {
     const date = new Date().toLocaleDateString('fr-FR');
     await insertCommande(n, from, t, date);
     s.p = []; s.e = 'menu';
+    await saveSession(from, s);
     return sendButtons(from,
       '✅ COMMANDE CONFIRMEE!\n\nNumero: ' + n + '\nTotal: ' + t + ' FCFA\n\nMerci pour votre commande ZYNTRA! 🎉',
       [
@@ -312,7 +338,7 @@ async function handleMessage(from, msg, buttonId) {
     );
   }
 
-  // ── MES COMMANDES — affiche les commandes du client ──
+  // ── MES COMMANDES ──
   if (bid === 'btn_commandes' || (s.e === 'menu' && m === '2')) {
     const commandes = await getCommandesClient(from);
     if (!commandes.length) {
@@ -361,72 +387,49 @@ app.get('/webhook', (req, res) => {
   const mode      = req.query['hub.mode'];
   const token     = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
-
-  console.log('📡 Webhook GET - mode:', mode, '| token ok:', token === VERIFY_TOKEN);
-
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    console.log('✅ Webhook vérifié par Meta!');
+    console.log('✅ Webhook vérifié!');
     res.status(200).send(challenge);
   } else {
-    console.error('❌ Webhook: token invalide');
     res.sendStatus(403);
   }
 });
 
 // ─────────────────────────────────────────────
-// WEBHOOK META — RÉCEPTION DES MESSAGES (POST)
+// WEBHOOK META — RÉCEPTION (POST)
 // ─────────────────────────────────────────────
 app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
-
   try {
     const body = req.body;
     if (body.object !== 'whatsapp_business_account') return;
-
-    const entry   = body.entry?.[0];
-    const changes = entry?.changes?.[0];
-    const value   = changes?.value;
-    const message = value?.messages?.[0];
-
+    const message = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
     if (!message) return;
-
     const from = message.from;
-
     if (message.type === 'text') {
-      const text = message.text?.body || '';
-      console.log(`📨 Texte de ${from}: "${text}"`);
-      await handleMessage(from, text, null);
+      console.log(`📨 Texte de ${from}: "${message.text?.body}"`);
+      await handleMessage(from, message.text?.body || '', null);
     }
-
     if (message.type === 'interactive') {
       const interactive = message.interactive;
       if (interactive.type === 'button_reply') {
-        const buttonId    = interactive.button_reply.id;
-        const buttonTitle = interactive.button_reply.title;
-        console.log(`🔘 Bouton de ${from}: "${buttonTitle}" (${buttonId})`);
-        await handleMessage(from, buttonTitle, buttonId);
+        console.log(`🔘 Bouton de ${from}: "${interactive.button_reply.title}" (${interactive.button_reply.id})`);
+        await handleMessage(from, interactive.button_reply.title, interactive.button_reply.id);
       }
       if (interactive.type === 'list_reply') {
-        const listId    = interactive.list_reply.id;
-        const listTitle = interactive.list_reply.title;
-        console.log(`📋 Liste de ${from}: "${listTitle}" (${listId})`);
-        await handleMessage(from, listTitle, listId);
+        console.log(`📋 Liste de ${from}: "${interactive.list_reply.title}" (${interactive.list_reply.id})`);
+        await handleMessage(from, interactive.list_reply.title, interactive.list_reply.id);
       }
     }
-
   } catch (err) {
-    console.error('❌ Erreur traitement webhook:', err.message);
+    console.error('❌ Erreur:', err.message);
   }
 });
 
 // ─────────────────────────────────────────────
 // ROUTES
 // ─────────────────────────────────────────────
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  next();
-});
-
+app.use((req, res, next) => { res.header('Access-Control-Allow-Origin', '*'); next(); });
 app.get('/test', (req, res) => res.json({status: 'ZYNTRA bot actif'}));
 app.get('/api/commandes', async (req, res) => res.json(await getCommandes()));
 app.post('/api/commandes/:num/statut', async (req, res) => { await updateStatut(req.params.num, req.body.statut); res.json({ok:true}); });
