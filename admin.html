@@ -7,149 +7,330 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:Arial,sans-serif;background:#f0f2f5;}
 .header{background:#0A2540;color:white;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;}
-.header h1{font-size:22px;}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;padding:20px;}
-.stat{background:white;padding:20px;border-radius:10px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.header h1{font-size:20px;}
+.tabs{display:flex;background:#0A2540;padding:0 30px;border-top:1px solid rgba(255,255,255,0.1);}
+.tab{color:rgba(255,255,255,0.6);padding:12px 20px;cursor:pointer;font-size:14px;border-bottom:3px solid transparent;}
+.tab.active{color:white;border-bottom-color:#1E88E5;}
+.page{display:none;padding:20px;}
+.page.active{display:block;}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:20px;}
+.stat{background:white;padding:20px;border-radius:10px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
 .num{font-size:32px;font-weight:bold;color:#1E88E5;}
-.label{color:#666;margin-top:5px;font-size:14px;}
-.section{background:white;margin:0 20px 20px;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
-.section h2{color:#0A2540;margin-bottom:15px;padding-bottom:8px;border-bottom:2px solid #1E88E5;}
+.label{color:#666;margin-top:5px;font-size:13px;}
+.card{background:white;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:20px;}
+.card h2{color:#0A2540;margin-bottom:15px;padding-bottom:8px;border-bottom:2px solid #1E88E5;font-size:16px;}
 table{width:100%;border-collapse:collapse;}
-th{background:#0A2540;color:white;padding:10px;text-align:left;}
-td{padding:10px;border-bottom:1px solid #eee;}
-.badge{padding:4px 10px;border-radius:10px;font-size:12px;font-weight:bold;display:inline-block;}
+th{background:#0A2540;color:white;padding:10px;text-align:left;font-size:13px;}
+td{padding:10px;border-bottom:1px solid #eee;font-size:13px;}
+tr:hover td{background:#f8f9fa;}
+.badge{padding:4px 10px;border-radius:10px;font-size:11px;font-weight:bold;display:inline-block;}
 .badge-prep{background:#fff3cd;color:#856404;}
 .badge-livraison{background:#cfe2ff;color:#0a367a;}
 .badge-livree{background:#d1e7dd;color:#0a3622;}
 .badge-annulee{background:#f8d7da;color:#842029;}
-select{padding:6px 10px;border-radius:6px;border:1px solid #ddd;background:white;cursor:pointer;font-size:13px;}
+select{padding:6px 10px;border-radius:6px;border:1px solid #ddd;font-size:12px;cursor:pointer;}
 select:focus{outline:none;border-color:#1E88E5;}
-.toast{position:fixed;bottom:20px;right:20px;background:#0A2540;color:white;padding:12px 20px;border-radius:8px;display:none;font-size:14px;z-index:999;}
+.filters{display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;}
+.filters select,.filters input{padding:8px 12px;border-radius:6px;border:1px solid #ddd;font-size:13px;}
+.btn{padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:500;}
+.btn-primary{background:#1E88E5;color:white;}
+.btn-primary:hover{background:#1565C0;}
+.btn-danger{background:#dc3545;color:white;}
+.btn-danger:hover{background:#b02a37;}
+.btn-success{background:#00C853;color:white;}
+.btn-success:hover{background:#00a844;}
+.form-row{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:15px;align-items:end;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group label{font-size:12px;color:#666;font-weight:500;}
+.form-group input{padding:8px 12px;border-radius:6px;border:1px solid #ddd;font-size:13px;}
+.form-group input:focus{outline:none;border-color:#1E88E5;}
+.toast{position:fixed;bottom:20px;right:20px;background:#0A2540;color:white;padding:12px 20px;border-radius:8px;display:none;font-size:14px;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
+.export-btn{float:right;margin-bottom:10px;}
+.chart-container{height:250px;display:flex;align-items:flex-end;gap:8px;padding:20px 0 10px;}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bar{width:100%;background:#1E88E5;border-radius:4px 4px 0 0;transition:height 0.3s;min-height:4px;}
+.bar-label{font-size:10px;color:#666;text-align:center;}
+.bar-val{font-size:11px;font-weight:bold;color:#0A2540;}
+.no-data{text-align:center;color:#999;padding:40px;font-size:14px;}
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>⚡ ZYNTRA — Dashboard Admin</h1>
-  <span id="dt"></span>
+  <span id="dt" style="font-size:13px;opacity:0.8;"></span>
 </div>
 
-<div class="stats">
-  <div class="stat"><div class="num" id="tc">0</div><div class="label">Commandes</div></div>
-  <div class="stat"><div class="num" id="ca">0</div><div class="label">CA (FCFA)</div></div>
-  <div class="stat"><div class="num" id="cl">0</div><div class="label">Clients</div></div>
-  <div class="stat"><div class="num" id="ep">0</div><div class="label">En préparation</div></div>
+<div class="tabs">
+  <div class="tab active" onclick="showTab('commandes')">📋 Commandes</div>
+  <div class="tab" onclick="showTab('stats')">📊 Statistiques</div>
+  <div class="tab" onclick="showTab('produits')">📦 Catalogue</div>
 </div>
 
-<div class="section">
-  <h2>Commandes récentes</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Numéro</th>
-        <th>Client</th>
-        <th>Total</th>
-        <th>Date</th>
-        <th>Statut</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="tb">
-      <tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">Chargement...</td></tr>
-    </tbody>
-  </table>
+<!-- PAGE COMMANDES -->
+<div id="page-commandes" class="page active">
+  <div class="stats">
+    <div class="stat"><div class="num" id="tc">0</div><div class="label">Total commandes</div></div>
+    <div class="stat"><div class="num" id="ca">0</div><div class="label">CA (FCFA)</div></div>
+    <div class="stat"><div class="num" id="cl">0</div><div class="label">Clients</div></div>
+    <div class="stat"><div class="num" id="ep">0</div><div class="label">En préparation</div></div>
+  </div>
+  <div class="card">
+    <h2>Commandes récentes</h2>
+    <div class="filters">
+      <select id="filtreStatut" onchange="filtrer()">
+        <option value="">Tous les statuts</option>
+        <option value="En preparation">En préparation</option>
+        <option value="En livraison">En livraison</option>
+        <option value="Livree">Livrée</option>
+        <option value="Annulee">Annulée</option>
+      </select>
+      <input type="date" id="filtreDate" onchange="filtrer()" placeholder="Filtrer par date">
+      <button class="btn btn-success export-btn" onclick="exportCSV()">⬇️ Export CSV</button>
+    </div>
+    <table>
+      <thead><tr><th>Numéro</th><th>Client</th><th>Total</th><th>Date</th><th>Statut</th><th>Action</th></tr></thead>
+      <tbody id="tb"><tr><td colspan="6" class="no-data">Chargement...</td></tr></tbody>
+    </table>
+  </div>
 </div>
 
-<div class="toast" id="toast">✅ Statut mis à jour</div>
+<!-- PAGE STATISTIQUES -->
+<div id="page-stats" class="page">
+  <div class="stats">
+    <div class="stat"><div class="num" id="s-total">0</div><div class="label">Total commandes</div></div>
+    <div class="stat"><div class="num" id="s-ca">0</div><div class="label">CA total (FCFA)</div></div>
+    <div class="stat"><div class="num" id="s-moy">0</div><div class="label">Panier moyen (FCFA)</div></div>
+    <div class="stat"><div class="num" id="s-livrees">0</div><div class="label">Livrées</div></div>
+  </div>
+  <div class="card">
+    <h2>Commandes par jour (7 derniers jours)</h2>
+    <div class="chart-container" id="chart"></div>
+  </div>
+  <div class="card">
+    <h2>Répartition par statut</h2>
+    <div id="repartition" style="display:grid;grid-template-columns:repeat(4,1fr);gap:15px;padding:10px 0;"></div>
+  </div>
+</div>
+
+<!-- PAGE CATALOGUE -->
+<div id="page-produits" class="page">
+  <div class="card">
+    <h2>Ajouter un produit</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nom du produit</label>
+        <input type="text" id="p-nom" placeholder="ex: Coca Cola 1L">
+      </div>
+      <div class="form-group">
+        <label>Prix (FCFA)</label>
+        <input type="number" id="p-prix" placeholder="ex: 500">
+      </div>
+      <button class="btn btn-primary" onclick="ajouterProduit()">➕ Ajouter</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Produits actifs</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Nom</th><th>Prix</th><th>Action</th></tr></thead>
+      <tbody id="tb-produits"><tr><td colspan="4" class="no-data">Chargement...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 // Horloge
-function ut() { document.getElementById("dt").textContent = new Date().toLocaleString("fr-FR"); }
-ut();
-setInterval(ut, 1000);
+setInterval(() => { document.getElementById("dt").textContent = new Date().toLocaleString("fr-FR"); }, 1000);
 
-// Toast notification
-function showToast(msg) {
-  var t = document.getElementById("toast");
-  t.textContent = msg;
-  t.style.display = "block";
-  setTimeout(function() { t.style.display = "none"; }, 2500);
+// Onglets
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'stats') renderStats();
+  if (name === 'produits') chargerProduits();
 }
 
-// Changer statut — URL relative (pas localhost)
+// Toast
+function showToast(msg, ok=true) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.background = ok ? '#0A2540' : '#dc3545';
+  t.style.display = "block";
+  setTimeout(() => { t.style.display = "none"; }, 3000);
+}
+
+// Badge
+function getBadge(statut) {
+  var classes = { 'En preparation':'badge-prep','En livraison':'badge-livraison','Livree':'badge-livree','Annulee':'badge-annulee' };
+  return "<span class='badge " + (classes[statut]||'badge-prep') + "'>" + statut + "</span>";
+}
+
+// Changer statut
 function changerStatut(n, s) {
   fetch("/api/commandes/" + n + "/statut", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ statut: s })
   })
-  .then(function(r) { return r.json(); })
-  .then(function(d) {
+  .then(r => r.json())
+  .then(d => {
     if (d.ok) {
-      showToast("✅ Commande " + n + " → " + s);
+      showToast("✅ " + n + " → " + s + " (client notifié)");
       charger();
     }
   })
-  .catch(function(e) {
-    console.log("Erreur:", e);
-    showToast("❌ Erreur lors de la mise à jour");
+  .catch(() => showToast("❌ Erreur", false));
+}
+
+// Données globales
+var toutesCommandes = [];
+
+// Charger commandes
+function charger() {
+  fetch("/api/commandes")
+  .then(r => r.json())
+  .then(d => {
+    toutesCommandes = d;
+    // Stats
+    document.getElementById("tc").textContent = d.length;
+    document.getElementById("ca").textContent = d.reduce((a,c) => a+c.total, 0).toLocaleString();
+    var clients = [...new Set(d.map(c => c.telephone))];
+    document.getElementById("cl").textContent = clients.length;
+    document.getElementById("ep").textContent = d.filter(c => c.statut==='En preparation').length;
+    filtrer();
   });
 }
 
-// Badge couleur selon statut
-function getBadge(statut) {
-  var classes = {
-    "En preparation": "badge-prep",
-    "En livraison":   "badge-livraison",
-    "Livree":         "badge-livree",
-    "Annulee":        "badge-annulee"
-  };
-  var cls = classes[statut] || "badge-prep";
-  return "<span class='badge " + cls + "'>" + statut + "</span>";
+// Filtrer
+function filtrer() {
+  var statut = document.getElementById("filtreStatut").value;
+  var date   = document.getElementById("filtreDate").value;
+  var data   = toutesCommandes.filter(c => {
+    if (statut && c.statut !== statut) return false;
+    if (date) {
+      var d = new Date(date).toLocaleDateString('fr-FR');
+      if (c.date !== d) return false;
+    }
+    return true;
+  });
+  renderTable(data);
 }
 
-// Charger les commandes
-function charger() {
-  fetch("/api/commandes")
-  .then(function(r) { return r.json(); })
-  .then(function(d) {
-    // Stats
-    document.getElementById("tc").textContent = d.length;
-    document.getElementById("ca").textContent = d.reduce(function(a, c) { return a + c.total; }, 0).toLocaleString();
-    var clients = [];
-    d.forEach(function(c) { if (clients.indexOf(c.telephone) === -1) clients.push(c.telephone); });
-    document.getElementById("cl").textContent = clients.length;
-    document.getElementById("ep").textContent = d.filter(function(c) { return c.statut === "En preparation"; }).length;
+function renderTable(d) {
+  var tb = document.getElementById("tb");
+  if (!d.length) { tb.innerHTML = "<tr><td colspan='6' class='no-data'>Aucune commande trouvée</td></tr>"; return; }
+  var html = "";
+  d.forEach(c => {
+    html += "<tr>";
+    html += "<td><strong>" + c.numero + "</strong></td>";
+    html += "<td>" + c.telephone + "</td>";
+    html += "<td><strong>" + c.total.toLocaleString() + " FCFA</strong></td>";
+    html += "<td>" + c.date + "</td>";
+    html += "<td>" + getBadge(c.statut) + "</td>";
+    html += "<td><select onchange='changerStatut(\"" + c.numero + "\",this.value)'>";
+    ['En preparation','En livraison','Livree','Annulee'].forEach(s => {
+      html += "<option value='" + s + "'" + (c.statut===s?" selected":"") + ">" + s + "</option>";
+    });
+    html += "</select></td></tr>";
+  });
+  tb.innerHTML = html;
+}
 
-    // Tableau
-    var tb = document.getElementById("tb");
-    if (!d.length) {
-      tb.innerHTML = "<tr><td colspan='6' style='text-align:center;color:#999;padding:20px;'>Aucune commande</td></tr>";
-      return;
-    }
+// Export CSV
+function exportCSV() {
+  var rows = [['Numéro','Client','Total','Date','Statut']];
+  toutesCommandes.forEach(c => rows.push([c.numero, c.telephone, c.total, c.date, c.statut]));
+  var csv = rows.map(r => r.join(',')).join('\n');
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'zyntra-commandes-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  showToast("✅ Export CSV téléchargé");
+}
 
-    var html = "";
-    for (var i = 0; i < d.length; i++) {
-      var c = d[i];
-      html += "<tr>";
-      html += "<td><strong>" + c.numero + "</strong></td>";
-      html += "<td>" + c.telephone + "</td>";
-      html += "<td><strong>" + c.total + " FCFA</strong></td>";
-      html += "<td>" + c.date + "</td>";
-      html += "<td>" + getBadge(c.statut) + "</td>";
-      html += "<td>";
-      html += "<select onchange='changerStatut(\"" + c.numero + "\", this.value)'>";
-      html += "<option value='En preparation'" + (c.statut === "En preparation" ? " selected" : "") + ">En preparation</option>";
-      html += "<option value='En livraison'"   + (c.statut === "En livraison"   ? " selected" : "") + ">En livraison</option>";
-      html += "<option value='Livree'"         + (c.statut === "Livree"         ? " selected" : "") + ">Livree</option>";
-      html += "<option value='Annulee'"        + (c.statut === "Annulee"        ? " selected" : "") + ">Annulee</option>";
-      html += "</select>";
-      html += "</td>";
-      html += "</tr>";
-    }
-    tb.innerHTML = html;
+// Stats & graphiques
+function renderStats() {
+  var d = toutesCommandes;
+  document.getElementById("s-total").textContent = d.length;
+  document.getElementById("s-ca").textContent = d.reduce((a,c)=>a+c.total,0).toLocaleString();
+  document.getElementById("s-moy").textContent = d.length ? Math.round(d.reduce((a,c)=>a+c.total,0)/d.length).toLocaleString() : 0;
+  document.getElementById("s-livrees").textContent = d.filter(c=>c.statut==='Livree').length;
+
+  // Graphique 7 jours
+  var chart = document.getElementById("chart");
+  var days = [];
+  for (var i=6; i>=0; i--) {
+    var dt = new Date(); dt.setDate(dt.getDate()-i);
+    days.push(dt.toLocaleDateString('fr-FR'));
+  }
+  var counts = days.map(day => ({ day, count: d.filter(c=>c.date===day).length, ca: d.filter(c=>c.date===day).reduce((a,c)=>a+c.total,0) }));
+  var max = Math.max(...counts.map(x=>x.count), 1);
+  chart.innerHTML = counts.map(x => {
+    var h = Math.max((x.count/max)*200, x.count>0?20:4);
+    return '<div class="bar-wrap"><div class="bar-val">' + (x.count||'') + '</div><div class="bar" style="height:' + h + 'px" title="' + x.ca.toLocaleString() + ' FCFA"></div><div class="bar-label">' + x.day.slice(0,5) + '</div></div>';
+  }).join('');
+
+  // Répartition
+  var statuts = ['En preparation','En livraison','Livree','Annulee'];
+  var colors  = ['#fff3cd','#cfe2ff','#d1e7dd','#f8d7da'];
+  var textCol = ['#856404','#0a367a','#0a3622','#842029'];
+  var rep = document.getElementById("repartition");
+  rep.innerHTML = statuts.map((s,i) => {
+    var count = d.filter(c=>c.statut===s).length;
+    var pct = d.length ? Math.round(count/d.length*100) : 0;
+    return '<div style="background:'+colors[i]+';border-radius:10px;padding:15px;text-align:center;"><div style="font-size:24px;font-weight:bold;color:'+textCol[i]+'">'+count+'</div><div style="font-size:12px;color:'+textCol[i]+';margin-top:4px;">'+s+'</div><div style="font-size:11px;color:'+textCol[i]+';opacity:0.7;">'+pct+'%</div></div>';
+  }).join('');
+}
+
+// Produits
+function chargerProduits() {
+  fetch("/api/produits")
+  .then(r => r.json())
+  .then(d => {
+    var tb = document.getElementById("tb-produits");
+    if (!d.length) { tb.innerHTML = "<tr><td colspan='4' class='no-data'>Aucun produit</td></tr>"; return; }
+    tb.innerHTML = d.map(p => `
+      <tr>
+        <td><code>${p.id}</code></td>
+        <td><strong>${p.nom}</strong></td>
+        <td>${parseInt(p.prix).toLocaleString()} FCFA</td>
+        <td><button class="btn btn-danger" onclick="supprimerProduit('${p.id}','${p.nom}')">🗑️ Supprimer</button></td>
+      </tr>
+    `).join('');
+  });
+}
+
+function ajouterProduit() {
+  var nom  = document.getElementById("p-nom").value.trim();
+  var prix = document.getElementById("p-prix").value.trim();
+  if (!nom || !prix) { showToast("❌ Nom et prix requis", false); return; }
+  fetch("/api/produits", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nom, prix: parseInt(prix) })
   })
-  .catch(function(e) { console.log("Erreur:", e); });
+  .then(r => r.json())
+  .then(d => {
+    if (d.ok) {
+      showToast("✅ Produit ajouté au catalogue!");
+      document.getElementById("p-nom").value = '';
+      document.getElementById("p-prix").value = '';
+      chargerProduits();
+    }
+  });
+}
+
+function supprimerProduit(id, nom) {
+  if (!confirm("Supprimer " + nom + " du catalogue?")) return;
+  fetch("/api/produits/" + id, { method: "DELETE" })
+  .then(r => r.json())
+  .then(d => {
+    if (d.ok) { showToast("✅ " + nom + " supprimé"); chargerProduits(); }
+  });
 }
 
 charger();
