@@ -80,7 +80,7 @@ function bot(tel,msg){
   const s=gs(tel);
   const m=String(msg).trim().toLowerCase();
   if(m==='bonjour'||m==='menu'||m==='hello'||m==='salut'){s.e='menu';return 'Bienvenue sur ZYNTRA!\n\n1 COMMANDER\n2 MES COMMANDES\n3 CONTACT';}
-  if(m==='commander'||m==='1'){s.e='cat';s.p=[];let r='CATALOGUE:\n\n';P.forEach(x=>r+=x.id+'. '+x.nom+' - '+x.prix+' FCFA\n');return r+'\nTapez le numero du produit\n0 = voir panier\nCONFIRMER = valider';}
+  if(m==='commander'||(m==='1'&&s.e!=='cat')){s.e='cat';s.p=[];let r='CATALOGUE:\n\n';P.forEach(x=>r+=x.id+'. '+x.nom+' - '+x.prix+' FCFA\n');return r+'\nTapez le numero du produit\n0 = voir panier\nCONFIRMER = valider';}
   if(m==='2'){return 'Vos commandes sont visibles sur le dashboard admin.';}
   if(m==='3'){return 'Support ZYNTRA: +237 651 16 15 77';}
   if(s.e==='cat'&&!isNaN(m)&&m!=='0'){const p=P.find(x=>x.id===parseInt(m));if(!p)return 'Produit invalide. Tapez un numero entre 1 et '+P.length;const ex=s.p.find(x=>x.id===p.id);if(ex)ex.q++;else s.p.push({...p,q:1});return p.nom+' ajoute au panier!\n\nContinuez a commander ou tapez 0 pour voir votre panier.';}
