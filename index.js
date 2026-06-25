@@ -65,47 +65,91 @@ async function updateStatut(num, statut) {
 // ─────────────────────────────────────────────
 // CATALOGUE
 // ─────────────────────────────────────────────
-const P=[
-  {id:1,nom:'Castel 65cl',prix:500},
-  {id:2,nom:'Beaufort 65cl',prix:500},
-  {id:3,nom:'Malta 65cl',prix:400},
-  {id:4,nom:'CocaCola 50cl',prix:400},
-  {id:5,nom:'Supermont 1.5L',prix:300}
+const P = [
+  {id:1, nom:'Castel 65cl',     prix:500},
+  {id:2, nom:'Beaufort 65cl',   prix:500},
+  {id:3, nom:'Malta 65cl',      prix:400},
+  {id:4, nom:'CocaCola 50cl',   prix:400},
+  {id:5, nom:'Supermont 1.5L',  prix:300}
 ];
 
-const S={};
-function gs(t){if(!S[t])S[t]={e:'menu',p:[]};return S[t];}
+const S = {};
+function gs(t) { if(!S[t]) S[t] = {e:'menu', p:[]}; return S[t]; }
 
-function bot(tel,msg){
-  const s=gs(tel);
-  const m=String(msg).trim().toLowerCase();
-  if(m==='bonjour'||m==='menu'||m==='hello'||m==='salut'){s.e='menu';return 'Bienvenue sur ZYNTRA!\n\n1 COMMANDER\n2 MES COMMANDES\n3 CONTACT';}
-  if(m==='commander'||(m==='1'&&s.e!=='cat')){s.e='cat';s.p=[];let r='CATALOGUE:\n\n';P.forEach(x=>r+=x.id+'. '+x.nom+' - '+x.prix+' FCFA\n');return r+'\nTapez le numero du produit\n0 = voir panier\nCONFIRMER = valider';}
-  if(m==='2'){return 'Vos commandes sont visibles sur le dashboard admin.';}
-  if(m==='3'){return 'Support ZYNTRA: +237 651 16 15 77';}
-  if(s.e==='cat'&&!isNaN(m)&&m!=='0'){const p=P.find(x=>x.id===parseInt(m));if(!p)return 'Produit invalide. Tapez un numero entre 1 et '+P.length;const ex=s.p.find(x=>x.id===p.id);if(ex)ex.q++;else s.p.push({...p,q:1});return p.nom+' ajoute au panier!\n\nContinuez a commander ou tapez 0 pour voir votre panier.';}
-  if(m==='0'){if(!s.p.length)return 'Votre panier est vide.\nTapez 1 pour commander.';let t=0,r='VOTRE PANIER:\n\n';s.p.forEach(p=>{t+=p.prix*p.q;r+=p.nom+' x'+p.q+' = '+(p.prix*p.q)+' FCFA\n'});return r+'\nTOTAL: '+t+' FCFA\n\nTapez CONFIRMER pour valider';}
-  if(m==='confirmer'){
-    if(!s.p.length)return 'Votre panier est vide.';
-    const t=s.p.reduce((a,p)=>a+p.prix*p.q,0);
-    const n='CMD-'+Date.now().toString().slice(-6);
-    const date=new Date().toLocaleDateString('fr-FR');
-    insertCommande(n,tel,t,date);
-    s.p=[];s.e='menu';
-    return 'COMMANDE CONFIRMEE!\n\nNumero: '+n+'\nTotal: '+t+' FCFA\n\nMerci pour votre commande ZYNTRA!\nTapez MENU pour continuer.';
+function bot(tel, msg) {
+  const s = gs(tel);
+  const m = String(msg).trim().toLowerCase();
+
+  console.log(`🔍 État session ${tel}: "${s.e}" | msg: "${m}"`);
+
+  // ── COMMANDES GLOBALES (toujours disponibles) ──
+  if (m === 'menu' || m === 'bonjour' || m === 'hello' || m === 'salut' || m === 'start') {
+    s.e = 'menu';
+    s.p = [];
+    return 'Bienvenue sur ZYNTRA! 🛒\n\nTapez le numero de votre choix:\n\n1 - COMMANDER\n2 - MES COMMANDES\n3 - CONTACT\n\n(Tapez MENU a tout moment pour recommencer)';
   }
-  return 'Je n\'ai pas compris. Tapez MENU pour recommencer.';
+
+  if (m === 'confirmer') {
+    if (!s.p.length) return 'Votre panier est vide.\nTapez 1 pour commander.';
+    const t = s.p.reduce((a, p) => a + p.prix * p.q, 0);
+    const n = 'CMD-' + Date.now().toString().slice(-6);
+    const date = new Date().toLocaleDateString('fr-FR');
+    insertCommande(n, tel, t, date);
+    s.p = []; s.e = 'menu';
+    return '✅ COMMANDE CONFIRMEE!\n\nNumero: ' + n + '\nTotal: ' + t + ' FCFA\n\nMerci pour votre commande ZYNTRA!\nTapez MENU pour continuer.';
+  }
+
+  if (m === '0') {
+    if (!s.p.length) return 'Votre panier est vide.\nTapez 1 pour commander.';
+    let t = 0, r = '🛒 VOTRE PANIER:\n\n';
+    s.p.forEach(p => { t += p.prix * p.q; r += '• ' + p.nom + ' x' + p.q + ' = ' + (p.prix * p.q) + ' FCFA\n'; });
+    return r + '\nTOTAL: ' + t + ' FCFA\n\nTapez CONFIRMER pour valider\nTapez MENU pour annuler';
+  }
+
+  // ── ÉTAT MENU ──
+  if (s.e === 'menu') {
+    if (m === '1' || m === 'commander') {
+      s.e = 'cat';
+      s.p = [];
+      let r = '📦 CATALOGUE:\n\n';
+      P.forEach(x => r += x.id + '. ' + x.nom + ' - ' + x.prix + ' FCFA\n');
+      return r + '\nTapez le numero du produit pour l\'ajouter\n0 = voir panier\nCONFIRMER = valider';
+    }
+    if (m === '2') {
+      return '📋 Vos commandes sont visibles sur le dashboard admin.\n\nTapez MENU pour revenir.';
+    }
+    if (m === '3') {
+      return '📞 Support ZYNTRA:\n\n+237 651 16 15 77\n\nTapez MENU pour revenir.';
+    }
+    return 'Tapez 1, 2 ou 3 pour choisir une option.\nOu tapez MENU pour recommencer.';
+  }
+
+  // ── ÉTAT CATALOGUE ──
+  if (s.e === 'cat') {
+    const num = parseInt(m);
+    if (!isNaN(num) && num >= 1 && num <= P.length) {
+      const p = P.find(x => x.id === num);
+      const ex = s.p.find(x => x.id === p.id);
+      if (ex) ex.q++;
+      else s.p.push({...p, q:1});
+      const total = s.p.reduce((a, x) => a + x.prix * x.q, 0);
+      return '✅ ' + p.nom + ' ajoute au panier!\n\nTotal panier: ' + total + ' FCFA\n\nContinuez a commander\n0 = voir panier\nCONFIRMER = valider';
+    }
+    return 'Tapez un numero entre 1 et ' + P.length + ' pour choisir un produit.\n0 = voir panier\nCONFIRMER = valider\nMENU = recommencer';
+  }
+
+  return 'Tapez MENU pour commencer.';
 }
 
 // ─────────────────────────────────────────────
-// ENVOI MESSAGE WHATSAPP (sans node-fetch)
+// ENVOI MESSAGE WHATSAPP
 // ─────────────────────────────────────────────
 async function sendWhatsAppMessage(to, message) {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const token = process.env.WHATSAPP_TOKEN;
 
   if (!phoneNumberId || !token) {
-    console.error('❌ Variables WHATSAPP_PHONE_NUMBER_ID ou WHATSAPP_TOKEN manquantes');
+    console.error('❌ Variables manquantes');
     return;
   }
 
@@ -142,7 +186,7 @@ async function sendWhatsAppMessage(to, message) {
           }
           resolve(result);
         } catch(e) {
-          console.error('❌ Erreur parsing réponse:', e.message);
+          console.error('❌ Erreur parsing:', e.message);
           resolve(null);
         }
       });
@@ -163,7 +207,6 @@ async function sendWhatsAppMessage(to, message) {
 // ─────────────────────────────────────────────
 app.get('/webhook', (req, res) => {
   const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN;
-
   const mode      = req.query['hub.mode'];
   const token     = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
@@ -171,7 +214,7 @@ app.get('/webhook', (req, res) => {
   console.log('📡 Webhook GET - mode:', mode, '| token ok:', token === VERIFY_TOKEN);
 
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    console.log('✅ Webhook vérifié par Meta !');
+    console.log('✅ Webhook vérifié par Meta!');
     res.status(200).send(challenge);
   } else {
     console.error('❌ Webhook: token invalide');
@@ -187,7 +230,6 @@ app.post('/webhook', async (req, res) => {
 
   try {
     const body = req.body;
-
     if (body.object !== 'whatsapp_business_account') return;
 
     const entry   = body.entry?.[0];
@@ -211,18 +253,18 @@ app.post('/webhook', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// ROUTES EXISTANTES
+// ROUTES
 // ─────────────────────────────────────────────
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   next();
 });
 
-app.get('/test',(req,res)=>res.json({reponse:bot(req.query.tel||'237',req.query.msg||'bonjour')}));
-app.get('/api/commandes',async(req,res)=>res.json(await getCommandes()));
-app.post('/api/commandes/:num/statut',async(req,res)=>{await updateStatut(req.params.num,req.body.statut);res.json({ok:true});});
-app.get('/admin',(req,res)=>res.send(fs.readFileSync('admin.html','utf8')));
-app.get('/',(req,res)=>res.redirect('/admin'));
+app.get('/test', (req, res) => res.json({reponse: bot(req.query.tel||'237', req.query.msg||'menu')}));
+app.get('/api/commandes', async (req, res) => res.json(await getCommandes()));
+app.post('/api/commandes/:num/statut', async (req, res) => { await updateStatut(req.params.num, req.body.statut); res.json({ok:true}); });
+app.get('/admin', (req, res) => res.send(fs.readFileSync('admin.html', 'utf8')));
+app.get('/', (req, res) => res.redirect('/admin'));
 
-const PORT=process.env.PORT||3000;
-app.listen(PORT,()=>console.log('ZYNTRA demarre sur port '+PORT));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log('ZYNTRA demarre sur port ' + PORT));
