@@ -342,13 +342,15 @@ async function handleMessage(from, msg, buttonId) {
   // ── DEMANDE AGENT ──
 
   if (m === 'agent' || m === 'aide' || m === 'help' || bid === 'btn_agent') {
-    s.e = 'agent'; s.p = []; s.produit_en_cours = ''; s.categorie_en_cours = '';
-    await saveSession(from, s);
+    const adminTel = process.env.ADMIN_PHONE || '237694294287';
     await insertDemandeAgent(from, msg);
     await notifierAdmin(from, msg);
     return sendButtons(from,
-      '🙋 Un agent ZYNTRA va vous contacter très prochainement!\n\nNos agents sont disponibles de 8h à 20h.',
-      [{ id:'btn_commander', title:'🛒 Commander' }, { id:'btn_menu', title:'🏠 Menu principal' }]
+      '🙋 Parlez directement à un agent ZYNTRA!\n\nCliquez le bouton ci-dessous pour ouvrir la conversation:\n\nhttps://wa.me/' + adminTel + '\n\nDisponible 8h - 20h 📞',
+      [
+        { id:'btn_commander', title:'🛒 Commander' },
+        { id:'btn_menu',      title:'🏠 Menu principal' }
+      ]
     );
   }
 
