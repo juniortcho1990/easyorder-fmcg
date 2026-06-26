@@ -162,7 +162,11 @@ tr:last-child td{border-bottom:none;}
     <div class="nav-item" onclick="showPage('boutiques',this)"><span class="icon">🏪</span> Boutiques</div>
     <div class="nav-item" onclick="showPage('catalogue',this)"><span class="icon">📦</span> Catalogue</div>
     <div class="nav-item" onclick="showPage('livraisons',this)"><span class="icon">🚚</span> Livraisons</div>
-    <div class="nav-item" onclick="showPage('agent',this)"><span class="icon">🙋</span> Agent <span class="nav-badge" id="badge-agent" style="display:none">0</span></div>
+    <div class="nav-item" onclick="showPage('agent',this)"><div class="nav-item" onclick="showPage('promotions',this)"><span class="icon">🔥</span> Promotions</div><div class="nav-item" onclick="showPage('promotions',this)"><span class="icon">🔥</span> Promotions</div>
+<div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div>
+<div class="nav-item" onclick="showPage('promotions',this)"><span class="icon">🔥</span> Promotions</div>
+<div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div>
+    <div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div><span class="icon">🙋</span> Agent <span class="nav-badge" id="badge-agent" style="display:none">0</span></div>
   </nav>
   <div class="sidebar-footer">
     <p>ZYNTRA v2.0</p>
@@ -453,6 +457,112 @@ tr:last-child td{border-bottom:none;}
       </div>
     </div>
 
+<!-- 
+INSTRUCTIONS: Dans admin.html, ajouter ces 2 nouveaux onglets dans la sidebar:
+1. Après l'onglet "catalogue", ajouter:
+   <div class="nav-item" onclick="showPage('promotions',this)"><span class="icon">🔥</span> Promotions</div>
+   <div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div>
+
+2. Dans PAGE_META, ajouter:
+   promotions:{title:'Promotions',sub:'Offres et réductions'},
+   config:{title:'Configuration',sub:'Paramètres du bot et du dashboard'}
+
+3. Dans showPage(), ajouter:
+   if(name==='promotions') chargerPromotions();
+   if(name==='config') chargerConfig();
+
+4. Ajouter ces 2 pages HTML avant la fermeture </div> du content:
+-->
+
+<!-- PAGE PROMOTIONS -->
+<div id="page-promotions" class="page">
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header"><h3>➕ Créer une promotion</h3></div>
+    <div style="padding:20px;">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="form-group"><label>Titre de la promotion</label><input type="text" id="promo-titre" placeholder="ex: Promo Boissons Juillet"></div>
+        <div class="form-group"><label>Type</label>
+          <select id="promo-type" onchange="updatePromoLabel()">
+            <option value="pourcentage">Pourcentage (%)</option>
+            <option value="montant">Montant fixe (FCFA)</option>
+          </select>
+        </div>
+        <div class="form-group"><label id="promo-valeur-label">Réduction (%)</label><input type="number" id="promo-valeur" placeholder="10"></div>
+        <div class="form-group"><label>Catégorie (optionnel)</label>
+          <select id="promo-cat">
+            <option value="">Toutes catégories</option>
+            <option value="cat_boissons">🥤 Boissons</option>
+            <option value="cat_alim">🍪 Alimentation</option>
+            <option value="cat_hygiene">🧴 Hygiène</option>
+            <option value="cat_divers">🚬 Divers</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;align-items:end;">
+        <div class="form-group"><label>Description (affichée dans WhatsApp)</label><input type="text" id="promo-desc" placeholder="ex: -10% sur toutes les boissons ce week-end!"></div>
+        <div class="form-group"><label>Date début</label><input type="date" id="promo-debut"></div>
+        <div class="form-group"><label>Date fin</label><input type="date" id="promo-fin"></div>
+        <button class="btn btn-primary" onclick="creerPromotion()">🔥 Créer</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>🔥 Promotions actives et passées</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Titre</th><th>Type</th><th>Réduction</th><th>Catégorie</th><th>Description</th><th>Période</th><th>Statut</th><th>Actions</th></tr></thead>
+        <tbody id="tb-promotions"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE CONFIG -->
+<div id="page-config" class="page">
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header"><h3>💬 Message de bienvenue WhatsApp</h3></div>
+    <div style="padding:20px;">
+      <p style="font-size:12px;color:#8b95a1;margin-bottom:12px;">Ce message est envoyé quand un client tape "bonjour" ou "menu".</p>
+      <textarea id="config-welcome" style="width:100%;height:120px;padding:12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;resize:vertical;outline:none;font-family:inherit;" placeholder="Bienvenue sur ZYNTRA!..."></textarea>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="sauvegarderConfig()">💾 Sauvegarder</button>
+        <button class="btn btn-secondary" onclick="previewWelcome()">👁️ Aperçu</button>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header"><h3>🖼️ Logo ZYNTRA (URL image)</h3></div>
+    <div style="padding:20px;">
+      <p style="font-size:12px;color:#8b95a1;margin-bottom:12px;">URL publique d'une image (JPG/PNG). Envoyée avant le message de bienvenue.</p>
+      <div style="display:flex;gap:10px;align-items:flex-end;">
+        <div class="form-group" style="flex:1;"><label>URL de l'image</label><input type="text" id="config-logo" placeholder="https://exemple.com/logo.jpg"></div>
+        <button class="btn btn-primary" onclick="sauvegarderConfig()">💾 Sauvegarder</button>
+      </div>
+      <div id="logo-preview" style="margin-top:12px;display:none;">
+        <img id="logo-img" src="" style="max-height:80px;border-radius:8px;border:1px solid #e5e7eb;" onerror="document.getElementById('logo-preview').style.display='none'">
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>🖼️ Images produits</h3></div>
+    <div style="padding:20px;">
+      <p style="font-size:12px;color:#8b95a1;margin-bottom:16px;">Ajoutez une URL d'image publique pour chaque produit. Elle sera envoyée dans WhatsApp lors de la sélection.</p>
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:flex-end;">
+        <div class="form-group" style="flex:1;"><label>Produit</label>
+          <select id="img-produit" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;"></select>
+        </div>
+        <div class="form-group" style="flex:2;"><label>URL de l'image</label><input type="text" id="img-url" placeholder="https://exemple.com/castel.jpg"></div>
+        <button class="btn btn-primary" onclick="sauvegarderImage()">💾 Sauvegarder</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Produit</th><th>Catégorie</th><th>Image</th><th>Action</th></tr></thead>
+          <tbody id="tb-images"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>  
   </div>
 </main>
 
@@ -503,7 +613,8 @@ var PAGE_META = {
   boutiques:{title:'Boutiques',sub:'Gestion des boutiques clientes'},
   catalogue:{title:'Catalogue',sub:'Gestion des produits'},
   livraisons:{title:'Livraisons',sub:'Suivi des livraisons en cours'},
-  agent:{title:'Agent',sub:'Messages et support client'}
+  agent:{title:'Agent',sub:'Messages et support client',promotions:{title:'Promotions',sub:'Offres et réductions'}
+  ,config:{title:'Configuration',sub:'Paramètres du bot'}}
 };
 
 function showPage(name, el) {
@@ -516,6 +627,8 @@ function showPage(name, el) {
   if(name==='stats') renderStats();
   if(name==='catalogue') chargerProduits();
   if(name==='agent') chargerDemandes();
+  if(name==='promotions') chargerPromotions();
+  if(name==='config') chargerConfig();
   if(name==='boutiques') renderBoutiques();
   if(name==='livraisons') renderLivraisons();
 }
@@ -1111,6 +1224,141 @@ function exportExcel() {
 }
 
 // ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+// PROMOTIONS — ajouter dans le <script> de admin.html
+// ══════════════════════════════════════════════════════
+
+function updatePromoLabel() {
+  var type = document.getElementById('promo-type').value;
+  document.getElementById('promo-valeur-label').textContent = type==='pourcentage'?'Réduction (%)':'Réduction (FCFA)';
+}
+
+function chargerPromotions() {
+  fetch('/api/promotions').then(r=>r.json()).then(d=>{
+    var tb = document.getElementById('tb-promotions');
+    var CATS = {cat_boissons:'🥤 Boissons',cat_alim:'🍪 Alimentation',cat_hygiene:'🧴 Hygiène',cat_divers:'🚬 Divers','':"Toutes"};
+    if(!d.length){tb.innerHTML='<tr><td colspan="8"><div class="empty"><div class="empty-icon">🔥</div><h4>Aucune promotion</h4></div></td></tr>';return;}
+    tb.innerHTML=d.map(p=>`<tr>
+      <td><strong>${p.titre}</strong></td>
+      <td style="font-size:12px;">${p.type==='pourcentage'?'%':'FCFA fixe'}</td>
+      <td><span style="color:#dc3545;font-weight:700;">-${p.valeur}${p.type==='pourcentage'?'%':' FCFA'}</span></td>
+      <td style="font-size:12px;">${CATS[p.categorie]||'Toutes'}</td>
+      <td style="font-size:12px;color:#8b95a1;">${p.description||'-'}</td>
+      <td style="font-size:11px;color:#8b95a1;">${p.date_debut||''}${p.date_fin?' → '+p.date_fin:''}</td>
+      <td>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" ${(p.actif===true||p.actif===1)?'checked':''} onchange="togglePromo(${p.id},this.checked)" style="width:16px;height:16px;cursor:pointer;">
+          <span style="font-size:12px;">${(p.actif===true||p.actif===1)?'Active':'Inactive'}</span>
+        </label>
+      </td>
+      <td><button class="btn btn-danger btn-sm" onclick="supprimerPromo(${p.id})">🗑️</button></td>
+    </tr>`).join('');
+  });
+}
+
+function creerPromotion() {
+  var titre=document.getElementById('promo-titre').value.trim();
+  var type=document.getElementById('promo-type').value;
+  var valeur=document.getElementById('promo-valeur').value.trim();
+  var cat=document.getElementById('promo-cat').value;
+  var desc=document.getElementById('promo-desc').value.trim();
+  var debut=document.getElementById('promo-debut').value;
+  var fin=document.getElementById('promo-fin').value;
+  if(!titre||!valeur){showToast('❌ Titre et réduction requis',false);return;}
+  fetch('/api/promotions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titre,description:desc,type,valeur:parseInt(valeur),categorie:cat,date_debut:debut,date_fin:fin})})
+  .then(r=>r.json()).then(d=>{
+    if(d.ok){
+      showToast('✅ Promotion créée! Les clients verront -'+valeur+(type==='pourcentage'?'%':' FCFA'));
+      document.getElementById('promo-titre').value='';
+      document.getElementById('promo-valeur').value='';
+      document.getElementById('promo-desc').value='';
+      chargerPromotions();
+    }
+  });
+}
+
+function togglePromo(id, actif) {
+  fetch('/api/promotions/'+id+'/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actif})})
+  .then(()=>{showToast(actif?'✅ Promotion activée':'⏸️ Promotion désactivée');chargerPromotions();});
+}
+
+function supprimerPromo(id) {
+  if(!confirm('Supprimer cette promotion?')) return;
+  fetch('/api/promotions/'+id,{method:'DELETE'}).then(()=>{showToast('✅ Promotion supprimée');chargerPromotions();});
+}
+
+// ══════════════════════════════════════════════════════
+// CONFIG — ajouter dans le <script> de admin.html
+// ══════════════════════════════════════════════════════
+
+function chargerConfig() {
+  fetch('/api/config').then(r=>r.json()).then(d=>{
+    document.getElementById('config-welcome').value=d.welcome_message||'';
+    document.getElementById('config-logo').value=d.logo_url||'';
+    if(d.logo_url){
+      document.getElementById('logo-img').src=d.logo_url;
+      document.getElementById('logo-preview').style.display='block';
+    }
+  });
+  // Charger produits pour le select images
+  fetch('/api/produits').then(r=>r.json()).then(d=>{
+    var sel=document.getElementById('img-produit');
+    sel.innerHTML=d.map(p=>`<option value="${p.id}">${p.nom}</option>`).join('');
+    renderTableImages(d);
+  });
+}
+
+function renderTableImages(produits) {
+  var tb=document.getElementById('tb-images');
+  var CATS={cat_boissons:'🥤 Boissons',cat_alim:'🍪 Alimentation',cat_hygiene:'🧴 Hygiène',cat_divers:'🚬 Divers'};
+  tb.innerHTML=produits.map(p=>`<tr>
+    <td><strong>${p.nom}</strong></td>
+    <td style="font-size:12px;">${CATS[p.categorie]||p.categorie}</td>
+    <td>
+      ${p.image_url&&p.image_url.startsWith('http')?
+        `<img src="${p.image_url}" style="height:36px;border-radius:6px;border:1px solid #e5e7eb;" onerror="this.style.display='none'"> <span style="font-size:11px;color:#00A86B;">✓ Image</span>`:
+        '<span style="font-size:11px;color:#8b95a1;">— Pas d\'image</span>'}
+    </td>
+    <td>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input type="text" placeholder="URL image..." value="${p.image_url&&p.image_url.startsWith('http')?p.image_url:''}" id="img-${p.id}" style="padding:5px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;width:200px;outline:none;">
+        <button class="btn btn-primary btn-sm" onclick="sauvegarderImageProduit('${p.id}')">💾</button>
+      </div>
+    </td>
+  </tr>`).join('');
+}
+
+function sauvegarderConfig() {
+  var welcome=document.getElementById('config-welcome').value;
+  var logo=document.getElementById('config-logo').value.trim();
+  fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({welcome_message:welcome,logo_url:logo})})
+  .then(r=>r.json()).then(d=>{
+    if(d.ok){
+      showToast('✅ Configuration sauvegardée!');
+      if(logo){document.getElementById('logo-img').src=logo;document.getElementById('logo-preview').style.display='block';}
+    }
+  });
+}
+
+function previewWelcome() {
+  var msg=document.getElementById('config-welcome').value;
+  alert('APERÇU WhatsApp:\n\n'+msg);
+}
+
+function sauvegarderImage() {
+  var id=document.getElementById('img-produit').value;
+  var url=document.getElementById('img-url').value.trim();
+  if(!url){showToast('❌ URL requise',false);return;}
+  fetch('/api/produits/'+id+'/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:url})})
+  .then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ Image sauvegardée!');chargerConfig();}});
+}
+
+function sauvegarderImageProduit(id) {
+  var url=document.getElementById('img-'+id).value.trim();
+  if(!url){showToast('❌ URL requise',false);return;}
+  fetch('/api/produits/'+id+'/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:url})})
+  .then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ Image sauvegardée pour ce produit!');chargerConfig();}});
+}
 // INIT
 // ══════════════════════════════════════════════════════
 charger();
