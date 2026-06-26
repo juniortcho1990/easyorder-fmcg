@@ -55,7 +55,6 @@ if (process.env.DATABASE_URL) {
     if (parseInt(r.rows[0].count) === 0) await initProduits();
     await pool.query(`INSERT INTO config (cle,valeur) VALUES ('welcome_message','Bienvenue sur ZYNTRA! 🛒\n\nVotre plateforme de commande FMCG.\n\nComment puis-je vous aider?') ON CONFLICT DO NOTHING`);
     await pool.query(`INSERT INTO config (cle,valeur) VALUES ('logo_url','') ON CONFLICT DO NOTHING`);
-    // Init séquence commandes
     const seq = await pool.query('SELECT COUNT(*) FROM commande_seq');
     if (parseInt(seq.rows[0].count) === 0) await pool.query('INSERT INTO commande_seq (last_num) VALUES (0)');
     console.log('PostgreSQL pret!');
@@ -113,8 +112,7 @@ if (process.env.DATABASE_URL) {
 async function getNextNumeroCommande() {
   if (usePostgres) {
     const r = await pool.query('UPDATE commande_seq SET last_num = last_num + 1 RETURNING last_num');
-    const num = r.rows[0].last_num;
-    return 'CMD' + String(num).padStart(6, '0');
+    return 'CMD' + String(r.rows[0].last_num).padStart(6, '0');
   } else {
     const row = db.prepare('SELECT last_num FROM commande_seq WHERE id=1').get();
     const newNum = (row?.last_num || 0) + 1;
@@ -124,7 +122,7 @@ async function getNextNumeroCommande() {
 }
 
 // ─────────────────────────────────────────────
-// CATALOGUE PAR DÉFAUT
+// CATALOGUE
 // ─────────────────────────────────────────────
 const CATEGORIES = [
   { id:'cat_boissons', nom:'🥤 Boissons',    emoji:'🥤' },
@@ -171,48 +169,15 @@ async function initProduits() {
 }
 
 // ─────────────────────────────────────────────
-// FONCTIONS DB — BOUTIQUES
-// ─────────────────────────────────────────────
-async function getBoutique(tel) {
-  if (usePostgres) { const r = await pool.query('SELECT * FROM boutiques WHERE telephone=$1', [tel]); return r.rows[0]; }
-  return db.prepare('SELECT * FROM boutiques WHERE telephone=?').get(tel);
-}
-
-async function getAllBoutiques() {
-  if (usePostgres) { const r = await pool.query('SELECT * FROM boutiques ORDER BY nom'); return r.rows; }
-  return db.prepare('SELECT * FROM boutiques ORDER BY nom').all();
-}
-
-async function upsertBoutique(tel, nom, quartier, commercial, notes) {
-  const date = new Date().toLocaleDateString('fr-FR');
-  if (usePostgres) {
-    await pool.query('INSERT INTO boutiques (telephone,nom,quartier,commercial,date_inscription,notes) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (telephone) DO UPDATE SET nom=$2,quartier=$3,commercial=$4,notes=$6', [tel,nom,quartier||'',commercial||'',date,notes||'']);
-  } else {
-    db.prepare('INSERT OR REPLACE INTO boutiques (telephone,nom,quartier,commercial,date_inscription,notes) VALUES (?,?,?,?,?,?)').run(tel,nom,quartier||'',commercial||'',date,notes||'');
-  }
-}
-
-async function getNomBoutique(tel) {
-  const b = await getBoutique(tel);
-  return b?.nom || ('Boutique ' + tel.slice(-4));
-}
-
-// ─────────────────────────────────────────────
-// FONCTIONS DB — PRODUITS
+// FONCTIONS DB
 // ─────────────────────────────────────────────
 async function getProduits(categorie) {
   if (usePostgres) {
     const q = categorie ? 'SELECT * FROM produits WHERE actif=TRUE AND categorie=$1 ORDER BY id' : 'SELECT * FROM produits WHERE actif=TRUE ORDER BY categorie,id';
-    const r = await pool.query(q, categorie ? [categorie] : []);
-    return r.rows;
+    return (await pool.query(q, categorie ? [categorie] : [])).rows;
   }
   if (categorie) return db.prepare('SELECT * FROM produits WHERE actif=1 AND categorie=? ORDER BY id').all(categorie);
   return db.prepare('SELECT * FROM produits WHERE actif=1 ORDER BY categorie,id').all();
-}
-
-async function getProduit(id) {
-  if (usePostgres) { const r = await pool.query('SELECT * FROM produits WHERE id=$1', [id]); return r.rows[0]; }
-  return db.prepare('SELECT * FROM produits WHERE id=?').get(id);
 }
 
 async function ajouterProduit(id, nom, prix, categorie, image_url, description) {
@@ -230,13 +195,9 @@ async function supprimerProduit(id) {
   else db.prepare('UPDATE produits SET actif=0 WHERE id=?').run(id);
 }
 
-// ─────────────────────────────────────────────
-// FONCTIONS DB — CONFIG
-// ─────────────────────────────────────────────
 async function getConfig(cle) {
   if (usePostgres) { const r = await pool.query('SELECT valeur FROM config WHERE cle=$1', [cle]); return r.rows[0]?.valeur || ''; }
-  const row = db.prepare('SELECT valeur FROM config WHERE cle=?').get(cle);
-  return row?.valeur || '';
+  return db.prepare('SELECT valeur FROM config WHERE cle=?').get(cle)?.valeur || '';
 }
 
 async function setConfig(cle, valeur) {
@@ -244,16 +205,9 @@ async function setConfig(cle, valeur) {
   else db.prepare('INSERT OR REPLACE INTO config (cle,valeur) VALUES (?,?)').run(cle, valeur);
 }
 
-// ─────────────────────────────────────────────
-// FONCTIONS DB — PROMOTIONS
-// ─────────────────────────────────────────────
 async function getPromotions(actifOnly) {
-  if (usePostgres) {
-    const q = actifOnly ? 'SELECT * FROM promotions WHERE actif=TRUE ORDER BY id DESC' : 'SELECT * FROM promotions ORDER BY id DESC';
-    const r = await pool.query(q); return r.rows;
-  }
-  const q = actifOnly ? 'SELECT * FROM promotions WHERE actif=1 ORDER BY id DESC' : 'SELECT * FROM promotions ORDER BY id DESC';
-  return db.prepare(q).all();
+  if (usePostgres) return (await pool.query(actifOnly ? 'SELECT * FROM promotions WHERE actif=TRUE ORDER BY id DESC' : 'SELECT * FROM promotions ORDER BY id DESC')).rows;
+  return db.prepare(actifOnly ? 'SELECT * FROM promotions WHERE actif=1 ORDER BY id DESC' : 'SELECT * FROM promotions ORDER BY id DESC').all();
 }
 
 async function ajouterPromotion(titre, description, type, valeur, categorie, produit_id, date_debut, date_fin) {
@@ -273,21 +227,37 @@ async function supprimerPromotion(id) {
 
 async function getPrixAvecPromo(produit) {
   const promos = await getPromotions(true);
-  let prixFinal = parseInt(produit.prix);
-  let promoAppliquee = null;
+  let prixFinal = parseInt(produit.prix), promoAppliquee = null;
   for (const p of promos) {
     if ((p.produit_id && p.produit_id === produit.id) || (p.categorie && p.categorie === produit.categorie)) {
       prixFinal = p.type === 'pourcentage' ? Math.round(produit.prix * (1 - p.valeur/100)) : Math.max(0, produit.prix - p.valeur);
-      promoAppliquee = p;
-      break;
+      promoAppliquee = p; break;
     }
   }
   return { prixFinal, promoAppliquee };
 }
 
-// ─────────────────────────────────────────────
-// FONCTIONS DB — SESSIONS & COMMANDES
-// ─────────────────────────────────────────────
+async function getBoutique(tel) {
+  if (usePostgres) { const r = await pool.query('SELECT * FROM boutiques WHERE telephone=$1', [tel]); return r.rows[0]; }
+  return db.prepare('SELECT * FROM boutiques WHERE telephone=?').get(tel);
+}
+
+async function getAllBoutiques() {
+  if (usePostgres) return (await pool.query('SELECT * FROM boutiques ORDER BY nom')).rows;
+  return db.prepare('SELECT * FROM boutiques ORDER BY nom').all();
+}
+
+async function upsertBoutique(tel, nom, quartier, commercial, notes) {
+  const date = new Date().toLocaleDateString('fr-FR');
+  if (usePostgres) await pool.query('INSERT INTO boutiques (telephone,nom,quartier,commercial,date_inscription,notes) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (telephone) DO UPDATE SET nom=$2,quartier=$3,commercial=$4,notes=$6', [tel,nom,quartier||'',commercial||'',date,notes||'']);
+  else db.prepare('INSERT OR REPLACE INTO boutiques (telephone,nom,quartier,commercial,date_inscription,notes) VALUES (?,?,?,?,?,?)').run(tel,nom,quartier||'',commercial||'',date,notes||'');
+}
+
+async function getNomBoutique(tel) {
+  const b = await getBoutique(tel);
+  return b?.nom || ('Boutique ' + tel.slice(-4));
+}
+
 async function getSession(tel) {
   if (usePostgres) {
     const r = await pool.query('SELECT * FROM sessions WHERE telephone=$1', [tel]);
@@ -306,12 +276,12 @@ async function saveSession(tel, s) {
 }
 
 async function getCommandes() {
-  if (usePostgres) { const r = await pool.query('SELECT * FROM commandes ORDER BY id DESC'); return r.rows; }
+  if (usePostgres) return (await pool.query('SELECT * FROM commandes ORDER BY id DESC')).rows;
   return db.prepare('SELECT * FROM commandes ORDER BY id DESC').all();
 }
 
 async function getCommandesClient(tel) {
-  if (usePostgres) { const r = await pool.query('SELECT * FROM commandes WHERE telephone=$1 ORDER BY id DESC LIMIT 5', [tel]); return r.rows; }
+  if (usePostgres) return (await pool.query('SELECT * FROM commandes WHERE telephone=$1 ORDER BY id DESC LIMIT 5', [tel])).rows;
   return db.prepare('SELECT * FROM commandes WHERE telephone=? ORDER BY id DESC LIMIT 5').all(tel);
 }
 
@@ -326,7 +296,7 @@ async function updateStatut(num, statut) {
 }
 
 async function getCommande(num) {
-  if (usePostgres) { const r = await pool.query('SELECT * FROM commandes WHERE numero=$1', [num]); return r.rows[0]; }
+  if (usePostgres) return (await pool.query('SELECT * FROM commandes WHERE numero=$1', [num])).rows[0];
   return db.prepare('SELECT * FROM commandes WHERE numero=?').get(num);
 }
 
@@ -338,7 +308,7 @@ async function insertDemandeAgent(tel, message) {
 }
 
 async function getDemandesAgent() {
-  if (usePostgres) { const r = await pool.query('SELECT * FROM demandes_agent ORDER BY id DESC'); return r.rows; }
+  if (usePostgres) return (await pool.query('SELECT * FROM demandes_agent ORDER BY id DESC')).rows;
   return db.prepare('SELECT * FROM demandes_agent ORDER BY id DESC').all();
 }
 
@@ -371,23 +341,60 @@ async function sendAPI(to, payload) {
 
 async function sendText(to, body) { return sendAPI(to, {messaging_product:'whatsapp',to,type:'text',text:{body}}); }
 async function sendImage(to, imageUrl, caption) { return sendAPI(to, {messaging_product:'whatsapp',to,type:'image',image:{link:imageUrl,caption:caption||''}}); }
-async function sendButtons(to, body, buttons) { return sendAPI(to, {messaging_product:'whatsapp',to,type:'interactive',interactive:{type:'button',body:{text:body},action:{buttons:buttons.map(b=>({type:'reply',reply:{id:b.id,title:b.title}}))}}}); }
-async function sendList(to, body, buttonText, sections) { return sendAPI(to, {messaging_product:'whatsapp',to,type:'interactive',interactive:{type:'list',body:{text:body},action:{button:buttonText,sections}}}); }
+async function sendButtons(to, body, buttons) {
+  // Limiter le body à 1024 chars (limite Meta)
+  const bodyTrunc = body.slice(0, 1024);
+  return sendAPI(to, {messaging_product:'whatsapp',to,type:'interactive',interactive:{type:'button',body:{text:bodyTrunc},action:{buttons:buttons.map(b=>({type:'reply',reply:{id:b.id,title:b.title.slice(0,20)}}))}}});
+}
+async function sendList(to, body, buttonText, sections) {
+  return sendAPI(to, {messaging_product:'whatsapp',to,type:'interactive',interactive:{type:'list',body:{text:body},action:{button:buttonText.slice(0,20),sections}}});
+}
 
+// ─────────────────────────────────────────────
+// PANIER — AFFICHAGE COMPLET
+// ─────────────────────────────────────────────
+function buildPanierMessage(panier, nomBoutique) {
+  if (!panier.length) return '🛒 Votre panier est vide.';
+
+  let msg = `🛒 *Panier de ${nomBoutique}*\n`;
+  msg += '━━━━━━━━━━━━━━━━━━━━\n';
+
+  let total = 0;
+  panier.forEach(item => {
+    const sousTotal = item.prix * item.q;
+    total += sousTotal;
+    msg += `✅ ${item.nom} x${item.q}\n`;
+    msg += `   ${sousTotal.toLocaleString()} FCFA\n`;
+  });
+
+  msg += '━━━━━━━━━━━━━━━━━━━━\n';
+  msg += `💰 *Total : ${total.toLocaleString()} FCFA*\n`;
+  msg += `📦 ${panier.reduce((a,x)=>a+x.q,0)} article(s)`;
+
+  return msg;
+}
+
+// Notifications statut — messages conviviaux
 const MESSAGES_STATUT = {
-  'En preparation': '⏳ Commande *{num}* en préparation.\n\n✅ Reçue → ⏳ Préparation → ⬜ Livraison → ⬜ Livrée',
-  'En livraison':   '🚚 Commande *{num}* en route!\n\n✅ Reçue → ✅ Préparation → 🚚 Livraison → ⬜ Livrée',
-  'Livree':         '✅ Commande *{num}* livrée!\n\n✅ Reçue → ✅ Préparation → ✅ Livraison → ✅ Livrée\n\nMerci! Tapez MENU pour recommander.',
-  'Annulee':        '❌ Commande *{num}* annulée.\n\nContactez-nous: +237 651 16 15 77'
+  'En preparation': (num, nom) =>
+    `👨‍🍳 *Bonne nouvelle ${nom}!*\n\nVotre commande *${num}* est en cours de préparation.\n\nNos équipes s'activent pour vous préparer votre commande dans les meilleurs délais! 🙌`,
+
+  'En livraison': (num, nom) =>
+    `🚚 *${nom}, votre commande est en route!*\n\nVotre commande *${num}* vient de quitter notre dépôt.\n\n👤 Livreur : Jean\n\nPréparez-vous à la réceptionner! 📦`,
+
+  'Livree': (num, nom) =>
+    `✅ *Livraison effectuée!*\n\nBonjour ${nom}, votre commande *${num}* a bien été livrée.\n\nMerci pour votre confiance ❤️\n\nTapez *MENU* pour passer une nouvelle commande.`,
+
+  'Annulee': (num, nom) =>
+    `❌ *Commande annulée*\n\nBonjour ${nom}, votre commande *${num}* a été annulée.\n\nPour toute question contactez-nous : +237 651 16 15 77`
 };
 
 async function notifierClient(telephone, numero, statut) {
   const template = MESSAGES_STATUT[statut];
   if (!template) return;
-  // Personnaliser avec le nom de la boutique
   const nomBoutique = await getNomBoutique(telephone);
-  const msg = template.replace('{num}', numero) + `\n\n_${nomBoutique}_`;
-  await sendText(telephone, msg);
+  await sendText(telephone, template(numero, nomBoutique));
+  console.log(`📱 Notification → ${telephone} | ${numero} → ${statut}`);
 }
 
 async function notifierAdmin(telephone, message) {
@@ -398,7 +405,7 @@ async function notifierAdmin(telephone, message) {
 }
 
 // ─────────────────────────────────────────────
-// BOT
+// BOT — HELPERS
 // ─────────────────────────────────────────────
 async function getMessagePromos() {
   const promos = await getPromotions(true);
@@ -414,9 +421,14 @@ async function getMessagePromos() {
 async function afficherCategories(from, s) {
   s.e = 'categories'; s.categorie_en_cours = ''; s.produit_en_cours = '';
   await saveSession(from, s);
-  let panierInfo = s.p.length > 0 ? '\n\n🛒 Panier: '+s.p.reduce((a,x)=>a+x.prix*x.q,0).toLocaleString()+' FCFA' : '';
   const promoMsg = await getMessagePromos();
-  return sendList(from, '🏪 Choisissez une catégorie:'+panierInfo+promoMsg, '📂 Categories',
+  let header = '🏪 *Choisissez une catégorie:*';
+  if (s.p.length > 0) {
+    const total = s.p.reduce((a,x)=>a+x.prix*x.q,0);
+    header += `\n\n🛒 Panier en cours: *${total.toLocaleString()} FCFA* (${s.p.length} article(s))`;
+  }
+  if (promoMsg) header += promoMsg;
+  return sendList(from, header, '📂 Categories',
     [{title:'Catégories', rows:CATEGORIES.map(c=>({id:c.id,title:c.nom,description:'Voir les produits'}))}]
   );
 }
@@ -427,36 +439,49 @@ async function afficherProduits(from, s, categorieId) {
   const cat = CATEGORIES.find(c=>c.id===categorieId);
   const produits = await getProduits(categorieId);
   if (!produits.length) return sendButtons(from, 'Aucun produit disponible.', [{id:'btn_categories',title:'⬅️ Catégories'},{id:'btn_menu',title:'🏠 Menu'}]);
-  let panierInfo = s.p.length > 0 ? '\n\n🛒 Panier: '+s.p.reduce((a,x)=>a+x.prix*x.q,0).toLocaleString()+' FCFA' : '';
+  let header = `${cat.nom}\n\nChoisissez un produit:`;
+  if (s.p.length > 0) {
+    const total = s.p.reduce((a,x)=>a+x.prix*x.q,0);
+    header += `\n\n🛒 Panier: *${total.toLocaleString()} FCFA*`;
+  }
   const rows = [];
   for (const x of produits) {
     const {prixFinal, promoAppliquee} = await getPrixAvecPromo(x);
-    const label = promoAppliquee ? `🔥 ${prixFinal.toLocaleString()} FCFA (-${promoAppliquee.type==='pourcentage'?promoAppliquee.valeur+'%':promoAppliquee.valeur+' F'})` : `${parseInt(x.prix).toLocaleString()} FCFA`;
+    const label = promoAppliquee
+      ? `🔥 ${prixFinal.toLocaleString()} FCFA (-${promoAppliquee.type==='pourcentage'?promoAppliquee.valeur+'%':promoAppliquee.valeur+' F'})`
+      : `${parseInt(x.prix).toLocaleString()} FCFA`;
     rows.push({id:x.id, title:x.nom.slice(0,24), description:label.slice(0,72)});
   }
-  return sendList(from, `${cat.nom}\n\nChoisissez un produit:${panierInfo}`, '📦 Voir les produits', [{title:cat.nom, rows}]);
+  return sendList(from, header, '📦 Voir les produits', [{title:cat.nom, rows}]);
 }
 
-function getTimeline(statut) {
+function getTimelineCourt(statut) {
   const etapes = ['En preparation','En livraison','Livree'];
   const labels = ['Préparation','Livraison','Livrée'];
   const emojis = ['⏳','🚚','✅'];
   const idx = etapes.indexOf(statut);
-  let t = '📍 *SUIVI DE COMMANDE:*\n\n✅ Commande reçue\n';
-  labels.forEach((l,i) => { if(i<idx) t+='✅ '+l+'\n'; else if(i===idx) t+=emojis[i]+' '+l+' ← ici\n'; else t+='⬜ '+l+'\n'; });
+  let t = '✅ Reçue\n';
+  labels.forEach((l,i) => {
+    if(i<idx) t+='✅ '+l+'\n';
+    else if(i===idx) t+=emojis[i]+' '+l+' ← vous êtes ici\n';
+    else t+='⬜ '+l+'\n';
+  });
   return t;
 }
 
+// ─────────────────────────────────────────────
+// BOT — LOGIQUE PRINCIPALE
+// ─────────────────────────────────────────────
 async function handleMessage(from, msg, buttonId) {
   const s = await getSession(from);
   const m = String(msg).trim().toLowerCase();
   const bid = buttonId || '';
   console.log(`État: "${s.e}" | msg: "${m}" | bid: "${bid}"`);
 
+  // ── MENU PRINCIPAL ──
   if (['menu','bonjour','hello','salut','start','hi'].includes(m) || bid==='btn_menu') {
     s.e='menu'; s.p=[]; s.produit_en_cours=''; s.categorie_en_cours='';
     await saveSession(from, s);
-    // Enregistrer boutique si nouvelle
     const b = await getBoutique(from);
     if (!b) await upsertBoutique(from, 'Boutique '+from.slice(-4), '', '', '');
     const nomBoutique = await getNomBoutique(from);
@@ -470,14 +495,19 @@ async function handleMessage(from, msg, buttonId) {
     );
   }
 
+  // ── PROMOTIONS ──
   if (m==='promo'||m==='offres'||bid==='btn_promos') {
     const promos = await getPromotions(true);
     if (!promos.length) return sendButtons(from, '😊 Aucune promotion en cours.', [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]);
     let msg2 = '🔥 *PROMOTIONS EN COURS:*\n\n';
-    promos.forEach(p => { const remise = p.type==='pourcentage'?`-${p.valeur}%`:`-${parseInt(p.valeur).toLocaleString()} FCFA`; msg2 += `*${p.titre}* ${remise}\n${p.description||''}\n\n`; });
+    promos.forEach(p => {
+      const remise = p.type==='pourcentage'?`-${p.valeur}%`:`-${parseInt(p.valeur).toLocaleString()} FCFA`;
+      msg2 += `*${p.titre}* ${remise}\n${p.description||''}\n\n`;
+    });
     return sendButtons(from, msg2, [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]);
   }
 
+  // ── AGENT ──
   if (m==='agent'||m==='aide'||m==='help'||bid==='btn_agent') {
     await insertDemandeAgent(from, msg);
     await notifierAdmin(from, msg);
@@ -486,11 +516,38 @@ async function handleMessage(from, msg, buttonId) {
       [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]);
   }
 
+  // ── VIDER LE PANIER ──
+  if (bid==='btn_vider') {
+    s.p=[]; s.e='menu'; s.produit_en_cours=''; s.categorie_en_cours='';
+    await saveSession(from, s);
+    return sendButtons(from, '🗑️ Votre panier a été vidé.',
+      [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]
+    );
+  }
+
+  // ── COMMANDER → catégories ──
   if (bid==='btn_commander'||(s.e==='menu'&&(m==='1'||m==='commander'))) return afficherCategories(from, s);
   if (bid==='btn_categories') return afficherCategories(from, s);
   if (bid && bid.startsWith('cat_')) return afficherProduits(from, s, bid);
+
+  // ── AJOUTER PRODUIT → retour catégories ──
   if (bid==='btn_ajouter') return afficherCategories(from, s);
 
+  // ── VOIR PANIER ──
+  if (bid==='btn_voir_panier' || m==='panier') {
+    const nomBoutique = await getNomBoutique(from);
+    if (!s.p.length) return sendButtons(from, '🛒 Votre panier est vide.',
+      [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]
+    );
+    const panierMsg = buildPanierMessage(s.p, nomBoutique);
+    return sendButtons(from, panierMsg, [
+      {id:'btn_ajouter',   title:'➕ Continuer achats'},
+      {id:'btn_confirmer', title:'✅ Valider commande'},
+      {id:'btn_vider',     title:'🗑️ Vider le panier'}
+    ]);
+  }
+
+  // ── SÉLECTION PRODUIT → quantité + image ──
   if (bid && !bid.startsWith('cat_') && !bid.startsWith('btn_') && !bid.startsWith('qte_') && s.e==='cat') {
     const produits = await getProduits();
     const p = produits.find(x=>x.id===bid);
@@ -499,13 +556,21 @@ async function handleMessage(from, msg, buttonId) {
       await saveSession(from, s);
       const {prixFinal, promoAppliquee} = await getPrixAvecPromo(p);
       if (p.image_url && p.image_url.startsWith('http')) await sendImage(from, p.image_url, p.nom);
-      let promoTxt = promoAppliquee ? `\n🔥 PROMO: ${promoAppliquee.type==='pourcentage'?`-${promoAppliquee.valeur}%`:`-${promoAppliquee.valeur} FCFA`} (${prixFinal.toLocaleString()} FCFA)` : '';
-      return sendButtons(from, `📦 *${p.nom}*\n💰 ${parseInt(p.prix).toLocaleString()} FCFA${promoTxt}\n\nQuelle quantité?`,
-        [{id:'qte_1',title:`x1 — ${prixFinal.toLocaleString()} F`},{id:'qte_2',title:`x2 — ${(prixFinal*2).toLocaleString()} F`},{id:'qte_5',title:`x5 — ${(prixFinal*5).toLocaleString()} F`}]
+      let promoTxt = promoAppliquee
+        ? `\n🔥 PROMO: ${promoAppliquee.type==='pourcentage'?`-${promoAppliquee.valeur}%`:`-${promoAppliquee.valeur} FCFA`} → *${prixFinal.toLocaleString()} FCFA*`
+        : '';
+      return sendButtons(from,
+        `📦 *${p.nom}*\n💰 ${parseInt(p.prix).toLocaleString()} FCFA${promoTxt}\n\nQuelle quantité souhaitez-vous?`,
+        [
+          {id:'qte_1', title:`x1 — ${prixFinal.toLocaleString()} F`},
+          {id:'qte_2', title:`x2 — ${(prixFinal*2).toLocaleString()} F`},
+          {id:'qte_5', title:`x5 — ${(prixFinal*5).toLocaleString()} F`}
+        ]
       );
     }
   }
 
+  // ── SÉLECTION QUANTITÉ → afficher panier complet ──
   if (bid && bid.startsWith('qte_') && s.e==='qte') {
     const qte = parseInt(bid.replace('qte_',''));
     const produits = await getProduits();
@@ -513,53 +578,88 @@ async function handleMessage(from, msg, buttonId) {
     if (p && qte>0) {
       const {prixFinal} = await getPrixAvecPromo(p);
       const ex = s.p.find(x=>x.id===p.id);
-      if (ex) ex.q+=qte; else s.p.push({id:p.id,nom:p.nom,prix:prixFinal,q:qte});
+      if (ex) ex.q+=qte; else s.p.push({id:p.id, nom:p.nom, prix:prixFinal, q:qte});
       s.e='cat'; s.produit_en_cours='';
       await saveSession(from, s);
-      const total = s.p.reduce((a,x)=>a+x.prix*x.q,0);
-      let detail=''; s.p.forEach(x=>{detail+='• '+x.nom+' x'+x.q+' = '+(x.prix*x.q).toLocaleString()+' FCFA\n';});
-      return sendButtons(from, '✅ '+p.nom+' x'+qte+' ajouté!\n\n🛒 PANIER:\n'+detail+'\nTOTAL: '+total.toLocaleString()+' FCFA',
-        [{id:'btn_ajouter',title:'➕ Ajouter produit'},{id:'btn_confirmer',title:'✅ Confirmer'},{id:'btn_menu',title:'❌ Annuler'}]
+
+      // Construire le message panier complet
+      const nomBoutique = await getNomBoutique(from);
+      const panierMsg = buildPanierMessage(s.p, nomBoutique);
+
+      return sendButtons(from,
+        `✅ *${p.nom} x${qte}* ajouté!\n\n${panierMsg}`,
+        [
+          {id:'btn_ajouter',   title:'➕ Continuer achats'},
+          {id:'btn_confirmer', title:'✅ Valider commande'},
+          {id:'btn_vider',     title:'🗑️ Vider le panier'}
+        ]
       );
     }
   }
 
-  if (m==='0'||bid==='btn_panier') {
-    if (!s.p.length) return sendButtons(from,'🛒 Panier vide.',[{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]);
-    let t=0,r='🛒 VOTRE PANIER:\n\n';
-    s.p.forEach(p=>{t+=p.prix*p.q;r+='• '+p.nom+' x'+p.q+' = '+(p.prix*p.q).toLocaleString()+' FCFA\n';});
-    return sendButtons(from,r+'\nTOTAL: '+t.toLocaleString()+' FCFA',[{id:'btn_confirmer',title:'✅ Confirmer'},{id:'btn_ajouter',title:'➕ Ajouter'},{id:'btn_menu',title:'❌ Annuler'}]);
-  }
-
+  // ── CONFIRMER ──
   if (m==='confirmer'||bid==='btn_confirmer') {
-    if (!s.p.length) return sendButtons(from,'🛒 Panier vide.',[{id:'btn_commander',title:'🛒 Commander'}]);
+    if (!s.p.length) return sendButtons(from,'🛒 Votre panier est vide.',[{id:'btn_commander',title:'🛒 Commander'}]);
     const t = s.p.reduce((a,p)=>a+p.prix*p.q,0);
     const n = await getNextNumeroCommande();
     const date = new Date().toLocaleDateString('fr-FR');
     await insertCommande(n,from,t,date);
+    const nomBoutique = await getNomBoutique(from);
+
+    // Récap final de la commande
+    let detail = '';
+    s.p.forEach(x => { detail += `✅ ${x.nom} x${x.q} — ${(x.prix*x.q).toLocaleString()} FCFA\n`; });
+
     s.p=[]; s.e='menu'; s.produit_en_cours=''; s.categorie_en_cours='';
     await saveSession(from, s);
-    const nomBoutique = await getNomBoutique(from);
+
     return sendButtons(from,
-      `✅ COMMANDE CONFIRMÉE!\n\nBonjour *${nomBoutique}*\nNuméro: *${n}*\nTotal: *${t.toLocaleString()} FCFA*\nDate: ${date}\n\n${getTimeline('En preparation')}\nMerci pour votre commande ZYNTRA! 🎉`,
+      `🎉 *Commande confirmée, ${nomBoutique}!*\n\n` +
+      `🔖 Numéro : *${n}*\n` +
+      `📅 Date : ${date}\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      detail +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `💰 *Total : ${t.toLocaleString()} FCFA*\n\n` +
+      `⏳ Votre commande est en préparation.\nVous recevrez une notification à chaque étape! 📲`,
       [{id:'btn_commander',title:'🛒 Nouvelle commande'},{id:'btn_suivi',title:'📍 Suivi commande'}]
     );
   }
 
+  // ── MES COMMANDES ──
   if (bid==='btn_commandes'||bid==='btn_suivi'||(s.e==='menu'&&m==='2')) {
     const commandes = await getCommandesClient(from);
-    if (!commandes.length) return sendButtons(from,"Pas encore de commandes.",[{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]);
-    let msg2='📋 VOS COMMANDES:\n\n';
-    commandes.forEach(c=>{msg2+='━━━━━━━━━━━━━━\n🔖 *'+c.numero+'*\n💰 '+parseInt(c.total).toLocaleString()+' FCFA\n📅 '+c.date+'\n'+getTimeline(c.statut)+'\n';});
-    return sendButtons(from,msg2,[{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]);
+    const nomBoutique = await getNomBoutique(from);
+    if (!commandes.length) return sendButtons(from,
+      `📋 ${nomBoutique}, vous n'avez pas encore de commandes.`,
+      [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]
+    );
+    let msg2 = `📋 *Commandes de ${nomBoutique}*\n\n`;
+    commandes.forEach(c => {
+      msg2 += `━━━━━━━━━━━━━━\n`;
+      msg2 += `🔖 *${c.numero}*\n`;
+      msg2 += `💰 ${parseInt(c.total).toLocaleString()} FCFA — 📅 ${c.date}\n`;
+      msg2 += getTimelineCourt(c.statut) + '\n';
+    });
+    return sendButtons(from, msg2,
+      [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]
+    );
   }
 
+  // ── CONTACT ──
   if (bid==='btn_contact'||(s.e==='menu'&&m==='3')) {
-    return sendButtons(from,'📞 Support ZYNTRA:\n\n+237 651 16 15 77\n8h - 20h\n\nTapez PROMO pour les offres!',
-      [{id:'btn_agent',title:'🙋 Parler agent'},{id:'btn_promos',title:'🔥 Promotions'},{id:'btn_menu',title:'🏠 Menu'}]);
+    return sendButtons(from,
+      '📞 *Support ZYNTRA:*\n\n+237 651 16 15 77\nDisponible 8h - 20h\n\nTapez *PROMO* pour les offres du moment!',
+      [{id:'btn_agent',title:'🙋 Parler à un agent'},{id:'btn_promos',title:'🔥 Promotions'},{id:'btn_menu',title:'🏠 Menu'}]
+    );
   }
 
-  return sendButtons(from,'Tapez MENU pour recommencer ou AGENT pour un conseiller. 👋',[{id:'btn_menu',title:'🏠 Menu'},{id:'btn_agent',title:'🙋 Agent'}]);
+  // ── FALLBACK ──
+  const nomBoutique = await getNomBoutique(from);
+  return sendButtons(from,
+    `Bonjour *${nomBoutique}* 👋\n\nTapez *MENU* pour recommencer ou *AGENT* pour un conseiller.`,
+    [{id:'btn_menu',title:'🏠 Menu'},{id:'btn_agent',title:'🙋 Agent'}]
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -600,8 +700,6 @@ app.post('/api/commandes/:num/statut',async(req,res)=>{
   if(cmd) await notifierClient(cmd.telephone,num,statut);
   res.json({ok:true});
 });
-
-// Produits
 app.get('/api/produits',async(req,res)=>res.json(await getProduits(req.query.categorie)));
 app.post('/api/produits',async(req,res)=>{
   const{nom,prix,categorie,description}=req.body;
@@ -612,51 +710,41 @@ app.post('/api/produits',async(req,res)=>{
 });
 app.post('/api/produits/:id/image',async(req,res)=>{
   const{image_url}=req.body;
-  if(image_url){await updateProduitImage(req.params.id,image_url);return res.json({ok:true,url:image_url});}
+  if(image_url){await updateProduitImage(req.params.id,image_url);return res.json({ok:true});}
   res.status(400).json({error:'image_url requis'});
 });
 app.delete('/api/produits/:id',async(req,res)=>{await supprimerProduit(req.params.id);res.json({ok:true});});
-
-// Promotions
 app.get('/api/promotions',async(req,res)=>res.json(await getPromotions(false)));
 app.post('/api/promotions',async(req,res)=>{
   const{titre,description,type,valeur,categorie,produit_id,date_debut,date_fin}=req.body;
-  if(!titre||!valeur) return res.status(400).json({error:'titre et valeur requis'});
+  if(!titre||!valeur) return res.status(400).json({error:'requis'});
   await ajouterPromotion(titre,description,type||'pourcentage',parseInt(valeur),categorie,produit_id,date_debut,date_fin);
   res.json({ok:true});
 });
 app.post('/api/promotions/:id/toggle',async(req,res)=>{await togglePromotion(req.params.id,req.body.actif);res.json({ok:true});});
 app.delete('/api/promotions/:id',async(req,res)=>{await supprimerPromotion(req.params.id);res.json({ok:true});});
-
-// Config
-app.get('/api/config',async(req,res)=>{res.json({welcome_message:await getConfig('welcome_message'),logo_url:await getConfig('logo_url')});});
+app.get('/api/config',async(req,res)=>res.json({welcome_message:await getConfig('welcome_message'),logo_url:await getConfig('logo_url')}));
 app.post('/api/config',async(req,res)=>{
   const{welcome_message,logo_url}=req.body;
   if(welcome_message!==undefined) await setConfig('welcome_message',welcome_message);
   if(logo_url!==undefined) await setConfig('logo_url',logo_url);
   res.json({ok:true});
 });
-
-// Boutiques
 app.get('/api/boutiques',async(req,res)=>res.json(await getAllBoutiques()));
 app.post('/api/boutiques',async(req,res)=>{
   const{telephone,nom,quartier,commercial,notes}=req.body;
-  if(!telephone||!nom) return res.status(400).json({error:'telephone et nom requis'});
+  if(!telephone||!nom) return res.status(400).json({error:'requis'});
   await upsertBoutique(telephone,nom,quartier,commercial,notes);
   res.json({ok:true});
 });
-
-// Agent
 app.get('/api/agent/demandes',async(req,res)=>res.json(await getDemandesAgent()));
 app.post('/api/agent/:id/statut',async(req,res)=>{await updateDemandeAgent(req.params.id,req.body.statut);res.json({ok:true});});
 app.post('/api/agent/message',async(req,res)=>{
   const{telephone,message}=req.body;
   if(!telephone||!message) return res.status(400).json({error:'requis'});
-  const nomBoutique = await getNomBoutique(telephone);
   await sendText(telephone,'👤 Agent ZYNTRA:\n\n'+message);
   res.json({ok:true});
 });
-
 app.get('/api/categories',(req,res)=>res.json(CATEGORIES));
 app.get('/admin',(req,res)=>res.send(fs.readFileSync('admin.html','utf8')));
 app.get('/',(req,res)=>res.redirect('/admin'));
