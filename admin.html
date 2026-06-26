@@ -163,9 +163,9 @@ tr:last-child td{border-bottom:none;}
     <div class="nav-item" onclick="showPage('catalogue',this)"><span class="icon">📦</span> Catalogue</div>
     <div class="nav-item" onclick="showPage('livraisons',this)"><span class="icon">🚚</span> Livraisons</div>
     <div class="nav-item" onclick="showPage('agent',this)"><div class="nav-item" onclick="showPage('promotions',this)"><span class="icon">🔥</span> Promotions</div><div class="nav-item" onclick="showPage('promotions',this)"><span class="icon">🔥</span> Promotions</div>
-<div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div>
-<div class="nav-item" onclick="showPage('promotions',this)"><span class="icon">🔥</span> Promotions</div>
-<div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div>
+    <div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div>
+    <div class="nav-item" onclick="showPage('promotions',this)"><span class="icon">🔥</span> Promotions</div>
+    <div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div>
     <div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div><span class="icon">🙋</span> Agent <span class="nav-badge" id="badge-agent" style="display:none">0</span></div>
   </nav>
   <div class="sidebar-footer">
@@ -458,22 +458,6 @@ tr:last-child td{border-bottom:none;}
     </div>
 
 <!-- 
-INSTRUCTIONS: Dans admin.html, ajouter ces 2 nouveaux onglets dans la sidebar:
-1. Après l'onglet "catalogue", ajouter:
-   <div class="nav-item" onclick="showPage('promotions',this)"><span class="icon">🔥</span> Promotions</div>
-   <div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div>
-
-2. Dans PAGE_META, ajouter:
-   promotions:{title:'Promotions',sub:'Offres et réductions'},
-   config:{title:'Configuration',sub:'Paramètres du bot et du dashboard'}
-
-3. Dans showPage(), ajouter:
-   if(name==='promotions') chargerPromotions();
-   if(name==='config') chargerConfig();
-
-4. Ajouter ces 2 pages HTML avant la fermeture </div> du content:
--->
-
 <!-- PAGE PROMOTIONS -->
 <div id="page-promotions" class="page">
   <div class="card" style="margin-bottom:20px;">
@@ -614,8 +598,7 @@ var PAGE_META = {
   catalogue:{title:'Catalogue',sub:'Gestion des produits'},
   livraisons:{title:'Livraisons',sub:'Suivi des livraisons en cours'},
   agent:{title:'Agent',sub:'Messages et support client',promotions:{title:'Promotions',sub:'Offres et réductions'}
-  ,config:{title:'Configuration',sub:'Paramètres du bot'}}
-};
+  ,config:{title:'Configuration',sub:'Paramètres du bot'}}};
 
 function showPage(name, el) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
