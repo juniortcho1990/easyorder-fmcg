@@ -80,7 +80,6 @@ tr:last-child td{border-bottom:none;}
 .badge-livraison{background:#EBF4FD;color:#1E88E5;}.badge-livraison::before{background:#1E88E5;}
 .badge-livree{background:#E8F8EF;color:#00A86B;}.badge-livree::before{background:#00A86B;}
 .badge-annulee{background:#FEECEC;color:#dc3545;}.badge-annulee::before{background:#dc3545;}
-.badge-attente{background:#FFF8E1;color:#F59E0B;}
 .timeline{display:flex;align-items:center;gap:0;}
 .tl-step{display:flex;flex-direction:column;align-items:center;gap:3px;}
 .tl-dot{width:10px;height:10px;border-radius:50%;background:#e5e7eb;border:2px solid #e5e7eb;transition:all 0.3s;}
@@ -100,7 +99,6 @@ tr:last-child td{border-bottom:none;}
 .page-btn:hover{background:#F7F8FA;}
 .page-btn.active{background:#1E88E5;color:white;border-color:#1E88E5;}
 .page-btn:disabled{opacity:0.4;cursor:not-allowed;}
-.periode-btn{transition:all 0.2s;}
 .periode-btn.active{background:#0A2540;color:white;border-color:#0A2540;}
 .cat-filter-btn.active{background:#0A2540;color:white;border-color:#0A2540;}
 .cat-tabs{display:flex;gap:8px;padding:14px 20px;border-bottom:1px solid #f4f5f7;overflow-x:auto;}
@@ -111,8 +109,8 @@ tr:last-child td{border-bottom:none;}
 .form-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:end;}
 .form-group{display:flex;flex-direction:column;gap:4px;}
 .form-group label{font-size:11px;font-weight:600;color:#8b95a1;text-transform:uppercase;letter-spacing:0.5px;}
-.form-group input,.form-group select{padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;transition:border 0.2s;}
-.form-group input:focus,.form-group select:focus{border-color:#1E88E5;}
+.form-group input,.form-group select,.form-group textarea{padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;transition:border 0.2s;font-family:inherit;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#1E88E5;}
 .boutiques-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:20px;}
 .boutique-card{background:white;border:1px solid #eef0f3;border-radius:12px;padding:18px;transition:box-shadow 0.2s;}
 .boutique-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08);}
@@ -123,7 +121,7 @@ tr:last-child td{border-bottom:none;}
 .boutique-stat{background:#F7F8FA;border-radius:8px;padding:8px 10px;}
 .boutique-stat-val{font-size:14px;font-weight:700;color:#0A2540;}
 .boutique-stat-label{font-size:10px;color:#8b95a1;margin-top:1px;}
-.agent-card{border:1px solid #eef0f3;border-radius:10px;padding:16px;margin-bottom:12px;transition:box-shadow 0.2s;}
+.agent-card{border:1px solid #eef0f3;border-radius:10px;padding:16px;margin-bottom:12px;}
 .agent-card.en_attente{border-left:3px solid #F59E0B;}
 .agent-card.traite{border-left:3px solid #00A86B;opacity:0.75;}
 .notif-panel{position:fixed;top:56px;right:20px;width:320px;background:white;border:1px solid #eef0f3;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.12);z-index:200;display:none;}
@@ -150,7 +148,7 @@ tr:last-child td{border-bottom:none;}
 </head>
 <body>
 
-<!-- SIDEBAR -->
+<!-- ═══════════════════════════════ SIDEBAR -->
 <aside class="sidebar">
   <div class="logo">
     <h1>ZYNTRA</h1>
@@ -162,11 +160,9 @@ tr:last-child td{border-bottom:none;}
     <div class="nav-item" onclick="showPage('boutiques',this)"><span class="icon">🏪</span> Boutiques</div>
     <div class="nav-item" onclick="showPage('catalogue',this)"><span class="icon">📦</span> Catalogue</div>
     <div class="nav-item" onclick="showPage('livraisons',this)"><span class="icon">🚚</span> Livraisons</div>
-    <div class="nav-item" onclick="showPage('agent',this)"><div class="nav-item" onclick="showPage('promotions',this)"><span class="icon">🔥</span> Promotions</div><div class="nav-item" onclick="showPage('promotions',this)"><span class="icon">🔥</span> Promotions</div>
-    <div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div>
+    <div class="nav-item" onclick="showPage('agent',this)"><span class="icon">🙋</span> Agent <span class="nav-badge" id="badge-agent" style="display:none">0</span></div>
     <div class="nav-item" onclick="showPage('promotions',this)"><span class="icon">🔥</span> Promotions</div>
     <div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div>
-    <div class="nav-item" onclick="showPage('config',this)"><span class="icon">⚙️</span> Configuration</div><span class="icon">🙋</span> Agent <span class="nav-badge" id="badge-agent" style="display:none">0</span></div>
   </nav>
   <div class="sidebar-footer">
     <p>ZYNTRA v2.0</p>
@@ -174,7 +170,7 @@ tr:last-child td{border-bottom:none;}
   </div>
 </aside>
 
-<!-- MAIN -->
+<!-- ═══════════════════════════════ MAIN -->
 <main class="main">
   <div class="topbar">
     <div class="topbar-left">
@@ -187,7 +183,6 @@ tr:last-child td{border-bottom:none;}
     </div>
   </div>
 
-  <!-- PANEL NOTIFICATIONS -->
   <div class="notif-panel" id="notif-panel">
     <div class="notif-header">
       <h4>Notifications</h4>
@@ -198,59 +193,20 @@ tr:last-child td{border-bottom:none;}
 
   <div class="content">
 
-    <!-- ══════════════════════════════════════ PAGE COMMANDES -->
+    <!-- ══════════ PAGE COMMANDES -->
     <div id="page-commandes" class="page active">
-      <!-- KPI ligne 1 -->
       <div class="kpi-row kpi-row-4" style="margin-bottom:14px;">
-        <div class="kpi">
-          <div class="kpi-header"><div class="kpi-icon kpi-icon-blue">💰</div><span class="kpi-trend trend-up" id="kpi-ca-trend">aujourd'hui</span></div>
-          <div class="kpi-value" id="kpi-ca">0</div>
-          <div class="kpi-label">CA du jour (FCFA)</div>
-          <div class="kpi-sub" id="kpi-ca-sub">Total: 0 FCFA</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-header"><div class="kpi-icon kpi-icon-green">📋</div><span class="kpi-trend trend-neutral">aujourd'hui</span></div>
-          <div class="kpi-value" id="kpi-cmd">0</div>
-          <div class="kpi-label">Commandes du jour</div>
-          <div class="kpi-sub" id="kpi-cmd-sub">Total: 0</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-header"><div class="kpi-icon kpi-icon-orange">🛒</div><span class="kpi-trend trend-neutral">moyen</span></div>
-          <div class="kpi-value" id="kpi-panier">0</div>
-          <div class="kpi-label">Panier moyen (FCFA)</div>
-          <div class="kpi-sub">Par commande</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-header"><div class="kpi-icon kpi-icon-purple">🏪</div></div>
-          <div class="kpi-value" id="kpi-boutiques">0</div>
-          <div class="kpi-label">Boutiques actives</div>
-          <div class="kpi-sub">Clients uniques</div>
-        </div>
+        <div class="kpi"><div class="kpi-header"><div class="kpi-icon kpi-icon-blue">💰</div><span class="kpi-trend trend-up">aujourd'hui</span></div><div class="kpi-value" id="kpi-ca">0</div><div class="kpi-label">CA du jour (FCFA)</div><div class="kpi-sub" id="kpi-ca-sub">Total: 0 FCFA</div></div>
+        <div class="kpi"><div class="kpi-header"><div class="kpi-icon kpi-icon-green">📋</div><span class="kpi-trend trend-neutral">aujourd'hui</span></div><div class="kpi-value" id="kpi-cmd">0</div><div class="kpi-label">Commandes du jour</div><div class="kpi-sub" id="kpi-cmd-sub">Total: 0</div></div>
+        <div class="kpi"><div class="kpi-header"><div class="kpi-icon kpi-icon-orange">🛒</div><span class="kpi-trend trend-neutral">moyen</span></div><div class="kpi-value" id="kpi-panier">0</div><div class="kpi-label">Panier moyen (FCFA)</div></div>
+        <div class="kpi"><div class="kpi-header"><div class="kpi-icon kpi-icon-purple">🏪</div></div><div class="kpi-value" id="kpi-boutiques">0</div><div class="kpi-label">Boutiques actives</div></div>
       </div>
-      <!-- KPI ligne 2 statuts -->
       <div class="kpi-row kpi-row-4" style="margin-bottom:24px;">
-        <div class="kpi" style="cursor:pointer;" onclick="filtrerStatut('En preparation')">
-          <div class="kpi-header"><div class="kpi-icon kpi-icon-orange">⏳</div></div>
-          <div class="kpi-value" id="kpi-prep" style="color:#F59E0B;">0</div>
-          <div class="kpi-label">En préparation</div>
-        </div>
-        <div class="kpi" style="cursor:pointer;" onclick="filtrerStatut('En livraison')">
-          <div class="kpi-header"><div class="kpi-icon kpi-icon-blue">🚚</div></div>
-          <div class="kpi-value" id="kpi-liv" style="color:#1E88E5;">0</div>
-          <div class="kpi-label">En livraison</div>
-        </div>
-        <div class="kpi" style="cursor:pointer;" onclick="filtrerStatut('Livree')">
-          <div class="kpi-header"><div class="kpi-icon kpi-icon-green">✅</div></div>
-          <div class="kpi-value" id="kpi-done" style="color:#00A86B;">0</div>
-          <div class="kpi-label">Livrées</div>
-        </div>
-        <div class="kpi" style="cursor:pointer;" onclick="filtrerStatut('Annulee')">
-          <div class="kpi-header"><div class="kpi-icon kpi-icon-red">❌</div></div>
-          <div class="kpi-value" id="kpi-ann" style="color:#dc3545;">0</div>
-          <div class="kpi-label">Annulées</div>
-        </div>
+        <div class="kpi" style="cursor:pointer;" onclick="filtrerStatut('En preparation')"><div class="kpi-header"><div class="kpi-icon kpi-icon-orange">⏳</div></div><div class="kpi-value" id="kpi-prep" style="color:#F59E0B;">0</div><div class="kpi-label">En préparation</div></div>
+        <div class="kpi" style="cursor:pointer;" onclick="filtrerStatut('En livraison')"><div class="kpi-header"><div class="kpi-icon kpi-icon-blue">🚚</div></div><div class="kpi-value" id="kpi-liv" style="color:#1E88E5;">0</div><div class="kpi-label">En livraison</div></div>
+        <div class="kpi" style="cursor:pointer;" onclick="filtrerStatut('Livree')"><div class="kpi-header"><div class="kpi-icon kpi-icon-green">✅</div></div><div class="kpi-value" id="kpi-done" style="color:#00A86B;">0</div><div class="kpi-label">Livrées</div></div>
+        <div class="kpi" style="cursor:pointer;" onclick="filtrerStatut('Annulee')"><div class="kpi-header"><div class="kpi-icon kpi-icon-red">❌</div></div><div class="kpi-value" id="kpi-ann" style="color:#dc3545;">0</div><div class="kpi-label">Annulées</div></div>
       </div>
-      <!-- Tableau -->
       <div class="card">
         <div class="card-header">
           <h3>Toutes les commandes</h3>
@@ -261,10 +217,7 @@ tr:last-child td{border-bottom:none;}
           </div>
         </div>
         <div class="filters-bar">
-          <div class="search-box">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="search-cmd" placeholder="Rechercher commande, téléphone..." oninput="filtrer()">
-          </div>
+          <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="search-cmd" placeholder="Rechercher commande, téléphone..." oninput="filtrer()"></div>
           <select class="filter-select" id="f-statut" onchange="filtrer()">
             <option value="">Tous les statuts</option>
             <option value="En preparation">En préparation</option>
@@ -282,11 +235,7 @@ tr:last-child td{border-bottom:none;}
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr>
-              <th>Numéro</th><th>Boutique</th><th>Téléphone</th><th>Quartier</th>
-              <th>Commercial</th><th>Montant</th><th>Date</th><th>Temps</th>
-              <th>Suivi</th><th>Statut</th><th>Action</th>
-            </tr></thead>
+            <thead><tr><th>Numéro</th><th>Boutique</th><th>Téléphone</th><th>Quartier</th><th>Commercial</th><th>Montant</th><th>Date</th><th>Temps</th><th>Suivi</th><th>Statut</th><th>Action</th></tr></thead>
             <tbody id="tb-commandes"><tr><td colspan="11"><div class="empty"><p>Chargement...</p></div></td></tr></tbody>
           </table>
         </div>
@@ -297,28 +246,22 @@ tr:last-child td{border-bottom:none;}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════ PAGE STATISTIQUES -->
+    <!-- ══════════ PAGE STATISTIQUES -->
     <div id="page-stats" class="page">
-      <!-- Sélecteur période -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-        <div>
-          <h3 style="font-size:15px;font-weight:600;color:#0A2540;">Tableau de bord analytique</h3>
-          <p style="font-size:12px;color:#8b95a1;margin-top:2px;">Données en temps réel</p>
-        </div>
+        <div><h3 style="font-size:15px;font-weight:600;color:#0A2540;">Tableau de bord analytique</h3><p style="font-size:12px;color:#8b95a1;margin-top:2px;">Données en temps réel</p></div>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-secondary btn-sm periode-btn" onclick="setPeriode(7,this)">7J</button>
           <button class="btn btn-secondary btn-sm periode-btn" onclick="setPeriode(14,this)">14J</button>
           <button class="btn btn-secondary btn-sm periode-btn active" onclick="setPeriode(30,this)">30J</button>
         </div>
       </div>
-      <!-- KPIs stats -->
       <div class="kpi-row kpi-row-4" style="margin-bottom:20px;">
         <div class="kpi"><div class="kpi-header"><div class="kpi-icon kpi-icon-blue">💰</div><span class="kpi-trend trend-neutral" id="st-ca-trend">période</span></div><div class="kpi-value" id="st-ca">0</div><div class="kpi-label">CA période (FCFA)</div></div>
         <div class="kpi"><div class="kpi-header"><div class="kpi-icon kpi-icon-green">📋</div></div><div class="kpi-value" id="st-cmd">0</div><div class="kpi-label">Commandes période</div></div>
         <div class="kpi"><div class="kpi-header"><div class="kpi-icon kpi-icon-orange">🛒</div></div><div class="kpi-value" id="st-panier">0</div><div class="kpi-label">Panier moyen (FCFA)</div></div>
         <div class="kpi"><div class="kpi-header"><div class="kpi-icon kpi-icon-purple">📈</div></div><div class="kpi-value" id="st-taux">0%</div><div class="kpi-label">Taux de livraison</div></div>
       </div>
-      <!-- Ligne 1 : CA + Statuts -->
       <div style="display:grid;grid-template-columns:3fr 2fr;gap:20px;margin-bottom:20px;">
         <div class="card">
           <div class="card-header"><h3>📈 Évolution du CA</h3><span style="font-size:11px;color:#8b95a1;" id="ca-period-label">30 jours</span></div>
@@ -331,23 +274,12 @@ tr:last-child td{border-bottom:none;}
             </div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-header"><h3>📊 Répartition statuts</h3></div>
-          <div style="padding:20px;" id="donut-statuts"></div>
-        </div>
+        <div class="card"><div class="card-header"><h3>📊 Répartition statuts</h3></div><div style="padding:20px;" id="donut-statuts"></div></div>
       </div>
-      <!-- Ligne 2 : Commandes + Semaine -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
-        <div class="card">
-          <div class="card-header"><h3>📋 Commandes par jour</h3></div>
-          <div style="padding:20px 20px 10px;"><div id="chart-cmd-adv" style="height:180px;display:flex;align-items:flex-end;gap:4px;"></div></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><h3>📅 Ventes par jour de semaine</h3></div>
-          <div style="padding:20px;" id="chart-weekday"></div>
-        </div>
+        <div class="card"><div class="card-header"><h3>📋 Commandes par jour</h3></div><div style="padding:20px 20px 10px;"><div id="chart-cmd-adv" style="height:180px;display:flex;align-items:flex-end;gap:4px;"></div></div></div>
+        <div class="card"><div class="card-header"><h3>📅 Ventes par jour de semaine</h3></div><div style="padding:20px;" id="chart-weekday"></div></div>
       </div>
-      <!-- Ligne 3 : Top produits + Quartiers -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
         <div class="card">
           <div class="card-header">
@@ -362,12 +294,8 @@ tr:last-child td{border-bottom:none;}
           </div>
           <div style="padding:16px 20px;" id="top-produits-adv"></div>
         </div>
-        <div class="card">
-          <div class="card-header"><h3>📍 Ventes par quartier</h3></div>
-          <div style="padding:16px 20px;" id="chart-quartiers"></div>
-        </div>
+        <div class="card"><div class="card-header"><h3>📍 Ventes par quartier</h3></div><div style="padding:16px 20px;" id="chart-quartiers"></div></div>
       </div>
-      <!-- Récap tableau -->
       <div class="card">
         <div class="card-header"><h3>📊 Récapitulatif de la période</h3></div>
         <div class="table-wrap">
@@ -379,20 +307,16 @@ tr:last-child td{border-bottom:none;}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════ PAGE BOUTIQUES -->
+    <!-- ══════════ PAGE BOUTIQUES -->
     <div id="page-boutiques" class="page">
       <div class="card" style="margin-bottom:20px;">
         <div class="card-header"><h3>🏪 Boutiques clientes</h3><span style="font-size:12px;color:#8b95a1;" id="boutiques-count">0 boutiques</span></div>
-        <div class="filters-bar">
-          <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="search-boutique" placeholder="Rechercher une boutique..." oninput="filtrerBoutiques()"></div>
-        </div>
+        <div class="filters-bar"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="search-boutique" placeholder="Rechercher une boutique..." oninput="filtrerBoutiques()"></div></div>
       </div>
-      <div class="boutiques-grid" id="boutiques-grid">
-        <div class="empty" style="grid-column:1/-1;"><div class="empty-icon">🏪</div><h4>Chargement...</h4></div>
-      </div>
+      <div class="boutiques-grid" id="boutiques-grid"><div class="empty" style="grid-column:1/-1;"><div class="empty-icon">🏪</div><h4>Chargement...</h4></div></div>
     </div>
 
-    <!-- ══════════════════════════════════════ PAGE CATALOGUE -->
+    <!-- ══════════ PAGE CATALOGUE -->
     <div id="page-catalogue" class="page">
       <div class="card">
         <div class="card-header"><h3>Ajouter un produit</h3></div>
@@ -422,7 +346,7 @@ tr:last-child td{border-bottom:none;}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════ PAGE LIVRAISONS -->
+    <!-- ══════════ PAGE LIVRAISONS -->
     <div id="page-livraisons" class="page">
       <div class="kpi-row kpi-row-4" style="margin-bottom:20px;">
         <div class="kpi"><div class="kpi-header"><div class="kpi-icon kpi-icon-orange">⏳</div></div><div class="kpi-value" id="liv-attente" style="color:#F59E0B;">0</div><div class="kpi-label">En attente</div></div>
@@ -441,7 +365,7 @@ tr:last-child td{border-bottom:none;}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════ PAGE AGENT -->
+    <!-- ══════════ PAGE AGENT -->
     <div id="page-agent" class="page">
       <div class="card" style="margin-bottom:20px;">
         <div class="card-header"><h3>🙋 Demandes d'agent</h3></div>
@@ -457,96 +381,94 @@ tr:last-child td{border-bottom:none;}
       </div>
     </div>
 
-<!-- 
-<!-- PAGE PROMOTIONS -->
-<div id="page-promotions" class="page">
-  <div class="card" style="margin-bottom:20px;">
-    <div class="card-header"><h3>➕ Créer une promotion</h3></div>
-    <div style="padding:20px;">
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
-        <div class="form-group"><label>Titre de la promotion</label><input type="text" id="promo-titre" placeholder="ex: Promo Boissons Juillet"></div>
-        <div class="form-group"><label>Type</label>
-          <select id="promo-type" onchange="updatePromoLabel()">
-            <option value="pourcentage">Pourcentage (%)</option>
-            <option value="montant">Montant fixe (FCFA)</option>
-          </select>
-        </div>
-        <div class="form-group"><label id="promo-valeur-label">Réduction (%)</label><input type="number" id="promo-valeur" placeholder="10"></div>
-        <div class="form-group"><label>Catégorie (optionnel)</label>
-          <select id="promo-cat">
-            <option value="">Toutes catégories</option>
-            <option value="cat_boissons">🥤 Boissons</option>
-            <option value="cat_alim">🍪 Alimentation</option>
-            <option value="cat_hygiene">🧴 Hygiène</option>
-            <option value="cat_divers">🚬 Divers</option>
-          </select>
+    <!-- ══════════ PAGE PROMOTIONS -->
+    <div id="page-promotions" class="page">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><h3>🔥 Créer une promotion</h3></div>
+        <div style="padding:20px;">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group"><label>Titre</label><input type="text" id="promo-titre" placeholder="ex: Promo Boissons Juillet"></div>
+            <div class="form-group"><label>Type</label>
+              <select id="promo-type" onchange="updatePromoLabel()">
+                <option value="pourcentage">Pourcentage (%)</option>
+                <option value="montant">Montant fixe (FCFA)</option>
+              </select>
+            </div>
+            <div class="form-group"><label id="promo-valeur-label">Réduction (%)</label><input type="number" id="promo-valeur" placeholder="10"></div>
+            <div class="form-group"><label>Catégorie</label>
+              <select id="promo-cat">
+                <option value="">Toutes catégories</option>
+                <option value="cat_boissons">🥤 Boissons</option>
+                <option value="cat_alim">🍪 Alimentation</option>
+                <option value="cat_hygiene">🧴 Hygiène</option>
+                <option value="cat_divers">🚬 Divers</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;align-items:end;">
+            <div class="form-group"><label>Description (affichée dans WhatsApp)</label><input type="text" id="promo-desc" placeholder="ex: -10% sur toutes les boissons!"></div>
+            <div class="form-group"><label>Date début</label><input type="date" id="promo-debut"></div>
+            <div class="form-group"><label>Date fin</label><input type="date" id="promo-fin"></div>
+            <button class="btn btn-primary" onclick="creerPromotion()">🔥 Créer</button>
+          </div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;align-items:end;">
-        <div class="form-group"><label>Description (affichée dans WhatsApp)</label><input type="text" id="promo-desc" placeholder="ex: -10% sur toutes les boissons ce week-end!"></div>
-        <div class="form-group"><label>Date début</label><input type="date" id="promo-debut"></div>
-        <div class="form-group"><label>Date fin</label><input type="date" id="promo-fin"></div>
-        <button class="btn btn-primary" onclick="creerPromotion()">🔥 Créer</button>
+      <div class="card">
+        <div class="card-header"><h3>Liste des promotions</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Titre</th><th>Type</th><th>Réduction</th><th>Catégorie</th><th>Description</th><th>Période</th><th>Statut</th><th>Action</th></tr></thead>
+            <tbody id="tb-promotions"></tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
-  <div class="card">
-    <div class="card-header"><h3>🔥 Promotions actives et passées</h3></div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Titre</th><th>Type</th><th>Réduction</th><th>Catégorie</th><th>Description</th><th>Période</th><th>Statut</th><th>Actions</th></tr></thead>
-        <tbody id="tb-promotions"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
 
-<!-- PAGE CONFIG -->
-<div id="page-config" class="page">
-  <div class="card" style="margin-bottom:20px;">
-    <div class="card-header"><h3>💬 Message de bienvenue WhatsApp</h3></div>
-    <div style="padding:20px;">
-      <p style="font-size:12px;color:#8b95a1;margin-bottom:12px;">Ce message est envoyé quand un client tape "bonjour" ou "menu".</p>
-      <textarea id="config-welcome" style="width:100%;height:120px;padding:12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;resize:vertical;outline:none;font-family:inherit;" placeholder="Bienvenue sur ZYNTRA!..."></textarea>
-      <div style="margin-top:12px;display:flex;gap:8px;">
-        <button class="btn btn-primary" onclick="sauvegarderConfig()">💾 Sauvegarder</button>
-        <button class="btn btn-secondary" onclick="previewWelcome()">👁️ Aperçu</button>
-      </div>
-    </div>
-  </div>
-  <div class="card" style="margin-bottom:20px;">
-    <div class="card-header"><h3>🖼️ Logo ZYNTRA (URL image)</h3></div>
-    <div style="padding:20px;">
-      <p style="font-size:12px;color:#8b95a1;margin-bottom:12px;">URL publique d'une image (JPG/PNG). Envoyée avant le message de bienvenue.</p>
-      <div style="display:flex;gap:10px;align-items:flex-end;">
-        <div class="form-group" style="flex:1;"><label>URL de l'image</label><input type="text" id="config-logo" placeholder="https://exemple.com/logo.jpg"></div>
-        <button class="btn btn-primary" onclick="sauvegarderConfig()">💾 Sauvegarder</button>
-      </div>
-      <div id="logo-preview" style="margin-top:12px;display:none;">
-        <img id="logo-img" src="" style="max-height:80px;border-radius:8px;border:1px solid #e5e7eb;" onerror="document.getElementById('logo-preview').style.display='none'">
-      </div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-header"><h3>🖼️ Images produits</h3></div>
-    <div style="padding:20px;">
-      <p style="font-size:12px;color:#8b95a1;margin-bottom:16px;">Ajoutez une URL d'image publique pour chaque produit. Elle sera envoyée dans WhatsApp lors de la sélection.</p>
-      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:flex-end;">
-        <div class="form-group" style="flex:1;"><label>Produit</label>
-          <select id="img-produit" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;"></select>
+    <!-- ══════════ PAGE CONFIGURATION -->
+    <div id="page-config" class="page">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><h3>💬 Message de bienvenue WhatsApp</h3></div>
+        <div style="padding:20px;">
+          <p style="font-size:12px;color:#8b95a1;margin-bottom:12px;">Ce message est envoyé quand un client tape "bonjour" ou "menu".</p>
+          <textarea id="config-welcome" style="width:100%;height:120px;padding:12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;resize:vertical;outline:none;font-family:inherit;" placeholder="Bienvenue sur ZYNTRA!..."></textarea>
+          <div style="margin-top:12px;display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="sauvegarderConfig()">💾 Sauvegarder</button>
+            <button class="btn btn-secondary" onclick="previewWelcome()">👁️ Aperçu</button>
+          </div>
         </div>
-        <div class="form-group" style="flex:2;"><label>URL de l'image</label><input type="text" id="img-url" placeholder="https://exemple.com/castel.jpg"></div>
-        <button class="btn btn-primary" onclick="sauvegarderImage()">💾 Sauvegarder</button>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Produit</th><th>Catégorie</th><th>Image</th><th>Action</th></tr></thead>
-          <tbody id="tb-images"></tbody>
-        </table>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><h3>🖼️ Logo ZYNTRA (URL image)</h3></div>
+        <div style="padding:20px;">
+          <p style="font-size:12px;color:#8b95a1;margin-bottom:12px;">URL publique d'une image (JPG/PNG). Envoyée avant le message de bienvenue.</p>
+          <div style="display:flex;gap:10px;align-items:flex-end;">
+            <div class="form-group" style="flex:1;"><label>URL de l'image</label><input type="text" id="config-logo" placeholder="https://exemple.com/logo.jpg"></div>
+            <button class="btn btn-primary" onclick="sauvegarderConfig()">💾 Sauvegarder</button>
+          </div>
+          <div id="logo-preview" style="margin-top:12px;display:none;">
+            <img id="logo-img" src="" style="max-height:80px;border-radius:8px;border:1px solid #e5e7eb;" onerror="document.getElementById('logo-preview').style.display='none'">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>🖼️ Images produits</h3></div>
+        <div style="padding:20px;">
+          <p style="font-size:12px;color:#8b95a1;margin-bottom:16px;">URL d'image publique par produit. Envoyée dans WhatsApp lors de la sélection.</p>
+          <div style="display:flex;gap:10px;margin-bottom:16px;align-items:flex-end;">
+            <div class="form-group" style="flex:1;"><label>Produit</label><select id="img-produit" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;"></select></div>
+            <div class="form-group" style="flex:2;"><label>URL de l'image</label><input type="text" id="img-url" placeholder="https://exemple.com/castel.jpg"></div>
+            <button class="btn btn-primary" onclick="sauvegarderImage()">💾 Sauvegarder</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Produit</th><th>Catégorie</th><th>Image</th><th>Action</th></tr></thead>
+              <tbody id="tb-images"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>  
+
   </div>
 </main>
 
@@ -565,48 +487,41 @@ tr:last-child td{border-bottom:none;}
 // ══════════════════════════════════════════════════════
 // DONNÉES & ÉTAT
 // ══════════════════════════════════════════════════════
-var toutesCommandes = [];
-var tousProduits = [];
-var currentPage = 1;
-var perPage = 10;
-var currentPeriode = 30;
-var currentCatFilter = '';
-var catActive = '';
-var toutesBoutiques = [];
-var notifications = [];
+var toutesCommandes=[], tousProduits=[], toutesBoutiques=[], notifications=[];
+var currentPage=1, perPage=10, currentPeriode=30, currentCatFilter='', catActive='';
+var QUARTIERS=['Bastos','Melen','Mvog-Mbi','Mokolo','Essos','Biyem-Assi','Nkol-Eton','Nlongkak'];
+var COMMERCIAUX=['Jean-Paul M.','Alice N.','Robert K.','Marie T.'];
+var CATS_LABELS={cat_boissons:'🥤 Boissons',cat_alim:'🍪 Alimentation',cat_hygiene:'🧴 Hygiène',cat_divers:'🚬 Divers'};
 
-var QUARTIERS = ['Bastos','Melen','Mvog-Mbi','Mokolo','Essos','Biyem-Assi','Nkol-Eton','Nlongkak'];
-var COMMERCIAUX = ['Jean-Paul M.','Alice N.','Robert K.','Marie T.'];
-var CATS_LABELS = {cat_boissons:'🥤 Boissons',cat_alim:'🍪 Alimentation',cat_hygiene:'🧴 Hygiène',cat_divers:'🚬 Divers'};
-
-function seedData(tel, field) {
-  var hash = 0;
-  for (var i=0;i<tel.length;i++) hash = (hash*31+tel.charCodeAt(i))%1000;
-  if (field==='quartier') return QUARTIERS[hash%QUARTIERS.length];
-  if (field==='commercial') return COMMERCIAUX[hash%COMMERCIAUX.length];
-  if (field==='boutique') return 'Boutique '+tel.slice(-4);
+function seedData(tel,field){
+  var hash=0; for(var i=0;i<tel.length;i++) hash=(hash*31+tel.charCodeAt(i))%1000;
+  if(field==='quartier') return QUARTIERS[hash%QUARTIERS.length];
+  if(field==='commercial') return COMMERCIAUX[hash%COMMERCIAUX.length];
+  if(field==='boutique') return 'Boutique '+tel.slice(-4);
   return '';
 }
 
 // ══════════════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════════════
-var PAGE_META = {
+var PAGE_META={
   commandes:{title:'Commandes',sub:"Vue d'ensemble de toutes les commandes"},
   stats:{title:'Statistiques',sub:'Analyses et performances'},
   boutiques:{title:'Boutiques',sub:'Gestion des boutiques clientes'},
   catalogue:{title:'Catalogue',sub:'Gestion des produits'},
   livraisons:{title:'Livraisons',sub:'Suivi des livraisons en cours'},
-  agent:{title:'Agent',sub:'Messages et support client',promotions:{title:'Promotions',sub:'Offres et réductions'}
-  ,config:{title:'Configuration',sub:'Paramètres du bot'}}};
+  agent:{title:'Agent',sub:'Messages et support client'},
+  promotions:{title:'Promotions',sub:'Offres et réductions'},
+  config:{title:'Configuration',sub:'Paramètres du bot'}
+};
 
-function showPage(name, el) {
+function showPage(name,el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('page-'+name).classList.add('active');
-  document.getElementById('page-title').textContent = PAGE_META[name].title;
-  document.getElementById('page-sub').textContent = PAGE_META[name].sub;
+  document.getElementById('page-title').textContent=PAGE_META[name].title;
+  document.getElementById('page-sub').textContent=PAGE_META[name].sub;
   if(name==='stats') renderStats();
   if(name==='catalogue') chargerProduits();
   if(name==='agent') chargerDemandes();
@@ -617,67 +532,66 @@ function showPage(name, el) {
 }
 
 // ══════════════════════════════════════════════════════
-// HORLOGE
+// UTILITAIRES
 // ══════════════════════════════════════════════════════
-function updateClock() {
-  var now = new Date().toLocaleString('fr-FR');
-  document.getElementById('dt').textContent = now;
-  document.getElementById('dt-side').textContent = now.slice(0,10);
-}
+function updateClock(){var now=new Date().toLocaleString('fr-FR');document.getElementById('dt').textContent=now;document.getElementById('dt-side').textContent=now.slice(0,10);}
 updateClock(); setInterval(updateClock,1000);
 
-// ══════════════════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════════════════
-function showToast(msg, ok) {
+function showToast(msg,ok){
   if(ok===undefined) ok=true;
   var t=document.getElementById('toast');
   t.textContent=msg; t.style.background=ok?'#0A2540':'#dc3545';
   t.style.display='block'; setTimeout(()=>{t.style.display='none';},3000);
 }
 
-// ══════════════════════════════════════════════════════
-// NOTIFICATIONS
-// ══════════════════════════════════════════════════════
-function toggleNotif() { document.getElementById('notif-panel').classList.toggle('open'); }
-function addNotif(icon, title, desc, color) {
+function toggleNotif(){document.getElementById('notif-panel').classList.toggle('open');}
+function addNotif(icon,title,desc,color){
   notifications.unshift({icon,title,desc,color:color||'#EBF4FD',time:new Date().toLocaleTimeString('fr-FR')});
   if(notifications.length>20) notifications.pop();
-  renderNotifs();
-  document.getElementById('notif-dot').style.display='block';
+  renderNotifs(); document.getElementById('notif-dot').style.display='block';
 }
-function renderNotifs() {
+function renderNotifs(){
   var el=document.getElementById('notif-list');
   if(!notifications.length){el.innerHTML='<div class="empty" style="padding:24px;"><p>Aucune notification</p></div>';return;}
-  el.innerHTML=notifications.slice(0,10).map(n=>`
-    <div class="notif-item">
-      <div class="notif-item-icon" style="background:${n.color}">${n.icon}</div>
-      <div style="flex:1;">
-        <div style="font-size:12px;font-weight:600;color:#0A2540;">${n.title}</div>
-        <div style="font-size:11px;color:#8b95a1;">${n.desc}</div>
-        <div style="font-size:10px;color:#b0b8c4;">${n.time}</div>
-      </div>
-    </div>`).join('');
+  el.innerHTML=notifications.slice(0,10).map(n=>`<div class="notif-item"><div class="notif-item-icon" style="background:${n.color}">${n.icon}</div><div style="flex:1;"><div style="font-size:12px;font-weight:600;color:#0A2540;">${n.title}</div><div style="font-size:11px;color:#8b95a1;">${n.desc}</div><div style="font-size:10px;color:#b0b8c4;">${n.time}</div></div></div>`).join('');
+}
+
+function getBadge(statut){
+  var m={'En preparation':'badge-prep','En livraison':'badge-livraison','Livree':'badge-livree','Annulee':'badge-annulee'};
+  return "<span class='badge "+(m[statut]||'badge-prep')+"'>"+statut+"</span>";
+}
+
+function getTimeline(statut){
+  var steps=[{id:'En preparation',label:'Prépa'},{id:'En livraison',label:'Livr.'},{id:'Livree',label:'Livrée'}];
+  var idx=steps.findIndex(s=>s.id===statut); var cancelled=statut==='Annulee';
+  var html='<div class="timeline"><div class="tl-step"><div class="tl-dot done"></div><div class="tl-label">Reçue</div></div>';
+  steps.forEach((s,i)=>{
+    var cls=cancelled?'cancelled':i<idx?'done':i===idx?'active':'';
+    html+='<div class="tl-line '+((!cancelled&&i<=idx)?'done':'')+'"></div><div class="tl-step"><div class="tl-dot '+cls+'"></div><div class="tl-label">'+s.label+'</div></div>';
+  });
+  return html+'</div>';
+}
+
+function getElapsed(){
+  var mins=Math.floor(Math.random()*180+10);
+  var cls=mins>120?'danger':mins>60?'warn':'';
+  var txt=mins<60?mins+'min':(Math.floor(mins/60)+'h'+(mins%60>0?mins%60+'m':''));
+  return '<span class="elapsed '+cls+'">'+txt+'</span>';
 }
 
 // ══════════════════════════════════════════════════════
-// CHARGER COMMANDES
+// COMMANDES
 // ══════════════════════════════════════════════════════
-function charger() {
+function charger(){
   fetch('/api/commandes').then(r=>r.json()).then(d=>{
-    var prev = toutesCommandes.length;
-    toutesCommandes = d;
-    if(d.length>prev && prev>0) addNotif('📋','Nouvelle commande',d[0].numero+' — '+(d[0].total||0).toLocaleString()+' FCFA');
+    var prev=toutesCommandes.length; toutesCommandes=d;
+    if(d.length>prev&&prev>0) addNotif('📋','Nouvelle commande',d[0].numero+' — '+(d[0].total||0).toLocaleString()+' FCFA');
     updateKPIs(); filtrer(); updateBadges();
   });
 }
 
-// ══════════════════════════════════════════════════════
-// KPIs
-// ══════════════════════════════════════════════════════
-function updateKPIs() {
-  var d=toutesCommandes;
-  var today=new Date().toLocaleDateString('fr-FR');
+function updateKPIs(){
+  var d=toutesCommandes, today=new Date().toLocaleDateString('fr-FR');
   var todayD=d.filter(c=>c.date===today);
   var caTotal=d.reduce((a,c)=>a+(c.total||0),0);
   var caToday=todayD.reduce((a,c)=>a+(c.total||0),0);
@@ -693,53 +607,20 @@ function updateKPIs() {
   document.getElementById('kpi-ann').textContent=d.filter(c=>c.statut==='Annulee').length;
 }
 
-function updateBadges() {
+function updateBadges(){
   var prep=toutesCommandes.filter(c=>c.statut==='En preparation').length;
   var el=document.getElementById('badge-prep');
   if(prep>0){el.textContent=prep;el.style.display='inline';}else el.style.display='none';
 }
 
-// ══════════════════════════════════════════════════════
-// TIMELINE & BADGES
-// ══════════════════════════════════════════════════════
-function getTimeline(statut) {
-  var steps=[{id:'En preparation',label:'Prépa'},{id:'En livraison',label:'Livr.'},{id:'Livree',label:'Livrée'}];
-  var idx=steps.findIndex(s=>s.id===statut);
-  var cancelled=statut==='Annulee';
-  var html='<div class="timeline"><div class="tl-step"><div class="tl-dot done"></div><div class="tl-label">Reçue</div></div>';
-  steps.forEach((s,i)=>{
-    var cls=cancelled?'cancelled':i<idx?'done':i===idx?'active':'';
-    html+='<div class="tl-line '+((!cancelled&&i<=idx)?'done':'')+'"></div>';
-    html+='<div class="tl-step"><div class="tl-dot '+cls+'"></div><div class="tl-label">'+s.label+'</div></div>';
-  });
-  return html+'</div>';
+function filtrerStatut(s){document.getElementById('f-statut').value=s;filtrer();}
+function resetFiltres(){
+  document.getElementById('search-cmd').value='';document.getElementById('f-statut').value='';
+  document.getElementById('f-date').value='';document.getElementById('f-tri').value='date-desc';
+  currentPage=1;filtrer();
 }
 
-function getBadge(statut) {
-  var m={'En preparation':'badge-prep','En livraison':'badge-livraison','Livree':'badge-livree','Annulee':'badge-annulee'};
-  return "<span class='badge "+(m[statut]||'badge-prep')+"'>"+statut+"</span>";
-}
-
-function getElapsed() {
-  var mins=Math.floor(Math.random()*180+10);
-  var cls=mins>120?'danger':mins>60?'warn':'';
-  var txt=mins<60?mins+'min':(Math.floor(mins/60)+'h'+(mins%60>0?mins%60+'m':''));
-  return '<span class="elapsed '+cls+'">'+txt+'</span>';
-}
-
-// ══════════════════════════════════════════════════════
-// FILTRES COMMANDES
-// ══════════════════════════════════════════════════════
-function filtrerStatut(s) { document.getElementById('f-statut').value=s; filtrer(); }
-function resetFiltres() {
-  document.getElementById('search-cmd').value='';
-  document.getElementById('f-statut').value='';
-  document.getElementById('f-date').value='';
-  document.getElementById('f-tri').value='date-desc';
-  currentPage=1; filtrer();
-}
-
-function filtrer() {
+function filtrer(){
   var search=(document.getElementById('search-cmd').value||'').toLowerCase();
   var statut=document.getElementById('f-statut').value;
   var date=document.getElementById('f-date').value;
@@ -755,45 +636,37 @@ function filtrer() {
   renderTable(data);
 }
 
-function renderTable(data) {
-  var total=data.length, start=(currentPage-1)*perPage, end=Math.min(start+perPage,total), page=data.slice(start,end);
+function renderTable(data){
+  var total=data.length,start=(currentPage-1)*perPage,end=Math.min(start+perPage,total),page=data.slice(start,end);
   document.getElementById('pagination-info').textContent=total+' commande'+(total>1?'s':'')+' — '+(start+1)+'-'+end;
   var tb=document.getElementById('tb-commandes');
   if(!page.length){tb.innerHTML='<tr><td colspan="11"><div class="empty"><div class="empty-icon">📋</div><h4>Aucune commande</h4></div></td></tr>';renderPagination(total);return;}
   tb.innerHTML=page.map(c=>`<tr>
-    <td><strong>${c.numero}</strong></td>
-    <td>${seedData(c.telephone,'boutique')}</td>
+    <td><strong>${c.numero}</strong></td><td>${seedData(c.telephone,'boutique')}</td>
     <td style="color:#8b95a1;">${c.telephone}</td>
     <td><span style="font-size:11px;background:#F7F8FA;padding:2px 8px;border-radius:4px;">${seedData(c.telephone,'quartier')}</span></td>
     <td style="font-size:12px;color:#8b95a1;">${seedData(c.telephone,'commercial')}</td>
     <td><strong>${(c.total||0).toLocaleString()} FCFA</strong></td>
     <td style="color:#8b95a1;">${c.date||'-'}</td>
-    <td>${getElapsed()}</td>
-    <td>${getTimeline(c.statut)}</td>
-    <td>${getBadge(c.statut)}</td>
+    <td>${getElapsed()}</td><td>${getTimeline(c.statut)}</td><td>${getBadge(c.statut)}</td>
     <td><select onchange='changerStatut("${c.numero}",this.value)' style="padding:5px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;">
       ${['En preparation','En livraison','Livree','Annulee'].map(s=>`<option value="${s}"${c.statut===s?' selected':''}>${s}</option>`).join('')}
-    </select></td>
-  </tr>`).join('');
+    </select></td></tr>`).join('');
   renderPagination(total);
 }
 
-function renderPagination(total) {
-  var pages=Math.ceil(total/perPage);
-  var el=document.getElementById('pagination-btns');
+function renderPagination(total){
+  var pages=Math.ceil(total/perPage),el=document.getElementById('pagination-btns');
   if(pages<=1){el.innerHTML='';return;}
   var html='<button class="page-btn" onclick="changePage('+(currentPage-1)+')" '+(currentPage===1?'disabled':'')+'>←</button>';
   for(var i=1;i<=Math.min(pages,7);i++) html+='<button class="page-btn '+(i===currentPage?'active':'')+'" onclick="changePage('+i+')">'+i+'</button>';
-  if(pages>7) html+='<span style="padding:6px 4px;color:#8b95a1;">...</span><button class="page-btn '+(currentPage===pages?'active':'')+'" onclick="changePage('+pages+')">'+pages+'</button>';
+  if(pages>7) html+='<span style="padding:6px 4px;color:#8b95a1;">...</span>';
   html+='<button class="page-btn" onclick="changePage('+(currentPage+1)+')" '+(currentPage===pages?'disabled':'')+'>→</button>';
   el.innerHTML=html;
 }
 function changePage(p){if(p<1)return;currentPage=p;filtrer();}
 
-// ══════════════════════════════════════════════════════
-// CHANGER STATUT
-// ══════════════════════════════════════════════════════
-function changerStatut(n,s) {
+function changerStatut(n,s){
   fetch('/api/commandes/'+n+'/statut',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut:s})})
   .then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ '+n+' → '+s+' (client notifié)');addNotif('🔄','Statut mis à jour',n+' → '+s,'#EBF4FD');charger();}})
   .catch(()=>showToast('❌ Erreur',false));
@@ -802,272 +675,150 @@ function changerStatut(n,s) {
 // ══════════════════════════════════════════════════════
 // STATISTIQUES
 // ══════════════════════════════════════════════════════
-function setPeriode(days, el) {
+function setPeriode(days,el){
   currentPeriode=days;
   document.querySelectorAll('.periode-btn').forEach(b=>{b.classList.remove('active');b.style.background='';b.style.color='';});
-  el.classList.add('active'); el.style.background='#0A2540'; el.style.color='white';
+  el.classList.add('active');el.style.background='#0A2540';el.style.color='white';
   renderStats();
 }
 
-function setCatFilter(cat, el) {
+function setCatFilter(cat,el){
   currentCatFilter=cat;
   document.querySelectorAll('.cat-filter-btn').forEach(b=>{b.classList.remove('active');b.style.background='';b.style.color='';});
-  el.classList.add('active'); el.style.background='#0A2540'; el.style.color='white';
+  el.classList.add('active');el.style.background='#0A2540';el.style.color='white';
   renderTopProduits();
 }
 
-function getDaysData(n) {
+function getDaysData(n){
   var days=[];
   for(var i=n-1;i>=0;i--){var dt=new Date();dt.setDate(dt.getDate()-i);days.push(dt.toLocaleDateString('fr-FR'));}
-  return days.map(day=>({
-    day,
-    commandes:toutesCommandes.filter(c=>c.date===day),
-    ca:toutesCommandes.filter(c=>c.date===day).reduce((a,c)=>a+(c.total||0),0),
-    livrees:toutesCommandes.filter(c=>c.date===day&&c.statut==='Livree').length
-  }));
+  return days.map(day=>({day,commandes:toutesCommandes.filter(c=>c.date===day),ca:toutesCommandes.filter(c=>c.date===day).reduce((a,c)=>a+(c.total||0),0),livrees:toutesCommandes.filter(c=>c.date===day&&c.statut==='Livree').length}));
 }
 
-function renderStats() {
+function renderStats(){
   var data=getDaysData(currentPeriode);
-  var caP=data.reduce((a,x)=>a+x.ca,0);
-  var cmdP=data.reduce((a,x)=>a+x.commandes.length,0);
-  var panierP=cmdP?Math.round(caP/cmdP):0;
-  var livreesP=data.reduce((a,x)=>a+x.livrees,0);
-  var tauxP=cmdP?Math.round(livreesP/cmdP*100):0;
+  var caP=data.reduce((a,x)=>a+x.ca,0),cmdP=data.reduce((a,x)=>a+x.commandes.length,0);
+  var panierP=cmdP?Math.round(caP/cmdP):0,livreesP=data.reduce((a,x)=>a+x.livrees,0),tauxP=cmdP?Math.round(livreesP/cmdP*100):0;
   document.getElementById('st-ca').textContent=caP.toLocaleString();
   document.getElementById('st-cmd').textContent=cmdP;
   document.getElementById('st-panier').textContent=panierP.toLocaleString();
   document.getElementById('st-taux').textContent=tauxP+'%';
   document.getElementById('ca-period-label').textContent=currentPeriode+' derniers jours';
-  renderCAChart(data); renderCmdChart(data); renderDonutStatuts(); renderWeekday(); renderTopProduits(); renderQuartiers(); renderRecap(data);
+  renderCAChart(data);renderCmdChart(data);renderDonutStatuts();renderWeekday();renderTopProduits();renderQuartiers();renderRecap(data);
 }
 
-function renderCAChart(data) {
+function renderCAChart(data){
   var max=Math.max(...data.map(x=>x.ca),1);
-  var caTotal=data.reduce((a,x)=>a+x.ca,0);
-  var caMax=Math.max(...data.map(x=>x.ca));
-  var caAvg=data.length?Math.round(caTotal/data.length):0;
+  var caTotal=data.reduce((a,x)=>a+x.ca,0),caMax=Math.max(...data.map(x=>x.ca)),caAvg=data.length?Math.round(caTotal/data.length):0;
   document.getElementById('st-ca-total').textContent=caTotal.toLocaleString();
   document.getElementById('st-ca-max').textContent=caMax.toLocaleString();
   document.getElementById('st-ca-avg').textContent=caAvg.toLocaleString();
   document.getElementById('chart-ca-adv').innerHTML=data.map((x,i)=>{
     var h=Math.max((x.ca/max)*180,x.ca>0?12:3);
     var isToday=x.day===new Date().toLocaleDateString('fr-FR');
-    var color=isToday?'#0A2540':'#1E88E5';
     var label=data.length<=14?x.day.slice(0,5):(i%3===0?x.day.slice(0,5):'');
     return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;" title="${x.day}: ${x.ca.toLocaleString()} FCFA">
       <div style="font-size:9px;font-weight:600;color:#0A2540;">${x.ca>0?(x.ca>=1000?Math.round(x.ca/1000)+'k':x.ca):''}</div>
-      <div style="width:100%;height:${h}px;background:${color};border-radius:4px 4px 0 0;transition:height 0.5s;cursor:pointer;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1"></div>
-      <div style="font-size:9px;color:#8b95a1;white-space:nowrap;">${label}</div>
-    </div>`;
+      <div style="width:100%;height:${h}px;background:${isToday?'#0A2540':'#1E88E5'};border-radius:4px 4px 0 0;"></div>
+      <div style="font-size:9px;color:#8b95a1;white-space:nowrap;">${label}</div></div>`;
   }).join('');
 }
 
-function renderCmdChart(data) {
+function renderCmdChart(data){
   var max=Math.max(...data.map(x=>x.commandes.length),1);
   document.getElementById('chart-cmd-adv').innerHTML=data.map((x,i)=>{
     var h=Math.max((x.commandes.length/max)*160,x.commandes.length>0?10:3);
     var label=data.length<=14?x.day.slice(0,5):(i%3===0?x.day.slice(0,5):'');
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;" title="${x.day}: ${x.commandes.length} commandes">
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
       <div style="font-size:9px;font-weight:600;color:#0A2540;">${x.commandes.length>0?x.commandes.length:''}</div>
       <div style="width:100%;height:${h}px;background:${x.commandes.length>0?'#00A86B':'#e5e7eb'};border-radius:4px 4px 0 0;"></div>
-      <div style="font-size:9px;color:#8b95a1;">${label}</div>
-    </div>`;
+      <div style="font-size:9px;color:#8b95a1;">${label}</div></div>`;
   }).join('');
 }
 
-function renderDonutStatuts() {
-  var d=toutesCommandes, total=d.length||1;
-  var statuts=[
-    {label:'En préparation',key:'En preparation',color:'#F59E0B'},
-    {label:'En livraison',key:'En livraison',color:'#1E88E5'},
-    {label:'Livrées',key:'Livree',color:'#00A86B'},
-    {label:'Annulées',key:'Annulee',color:'#dc3545'},
-  ];
+function renderDonutStatuts(){
+  var d=toutesCommandes,total=d.length||1;
+  var statuts=[{label:'En préparation',key:'En preparation',color:'#F59E0B'},{label:'En livraison',key:'En livraison',color:'#1E88E5'},{label:'Livrées',key:'Livree',color:'#00A86B'},{label:'Annulées',key:'Annulee',color:'#dc3545'}];
   document.getElementById('donut-statuts').innerHTML=statuts.map(s=>{
-    var count=d.filter(c=>c.statut===s.key).length;
-    var pct=Math.round(count/total*100);
-    return `<div style="margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-        <span style="font-size:12px;font-weight:500;">${s.label}</span>
-        <span style="font-size:12px;font-weight:700;color:${s.color};">${count} <span style="font-weight:400;color:#8b95a1;">(${pct}%)</span></span>
-      </div>
-      <div style="background:#f4f5f7;border-radius:4px;height:8px;overflow:hidden;">
-        <div style="width:${pct}%;height:100%;background:${s.color};border-radius:4px;transition:width 0.6s;"></div>
-      </div>
-    </div>`;
+    var count=d.filter(c=>c.statut===s.key).length,pct=Math.round(count/total*100);
+    return `<div style="margin-bottom:14px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:12px;font-weight:500;">${s.label}</span><span style="font-size:12px;font-weight:700;color:${s.color};">${count} <span style="font-weight:400;color:#8b95a1;">(${pct}%)</span></span></div><div style="background:#f4f5f7;border-radius:4px;height:8px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${s.color};border-radius:4px;"></div></div></div>`;
   }).join('');
 }
 
-function renderWeekday() {
+function renderWeekday(){
   var jours=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
   var data=getDaysData(currentPeriode);
   var weekStats=jours.map((j,idx)=>{
-    var dayData=data.filter(d=>{
-      var parts=d.day.split('/');
-      if(parts.length<3) return false;
-      return new Date(parts[2],parts[1]-1,parts[0]).getDay()===idx;
-    });
+    var dayData=data.filter(d=>{var parts=d.day.split('/');if(parts.length<3)return false;return new Date(parts[2],parts[1]-1,parts[0]).getDay()===idx;});
     return {jour:j,commandes:dayData.reduce((a,x)=>a+x.commandes.length,0),ca:dayData.reduce((a,x)=>a+x.ca,0)};
   });
-  var maxCA=Math.max(...weekStats.map(x=>x.ca),1);
-  var today=new Date().getDay();
+  var maxCA=Math.max(...weekStats.map(x=>x.ca),1),today=new Date().getDay();
   document.getElementById('chart-weekday').innerHTML=weekStats.map((w,i)=>{
-    var pct=Math.round(w.ca/maxCA*100);
-    var isToday=i===today;
-    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-      <span style="font-size:12px;width:68px;color:${isToday?'#0A2540':'#374151'};font-weight:${isToday?'700':'400'};">${w.jour.slice(0,3)}</span>
-      <div style="flex:1;background:#f4f5f7;border-radius:4px;height:10px;overflow:hidden;">
-        <div style="width:${pct}%;height:100%;background:${isToday?'#0A2540':'#1E88E5'};border-radius:4px;transition:width 0.6s;"></div>
-      </div>
-      <span style="font-size:11px;color:#8b95a1;width:80px;text-align:right;">${w.ca.toLocaleString()} F</span>
-      <span style="font-size:11px;color:#b0b8c4;width:24px;text-align:right;">${w.commandes}</span>
-    </div>`;
+    var pct=Math.round(w.ca/maxCA*100),isToday=i===today;
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><span style="font-size:12px;width:68px;color:${isToday?'#0A2540':'#374151'};font-weight:${isToday?'700':'400'};">${w.jour.slice(0,3)}</span><div style="flex:1;background:#f4f5f7;border-radius:4px;height:10px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${isToday?'#0A2540':'#1E88E5'};border-radius:4px;"></div></div><span style="font-size:11px;color:#8b95a1;width:80px;text-align:right;">${w.ca.toLocaleString()} F</span><span style="font-size:11px;color:#b0b8c4;width:24px;text-align:right;">${w.commandes}</span></div>`;
   }).join('');
 }
 
 var TOP_PRODUITS_DATA=[
   {nom:'Castel 65cl',cat:'cat_boissons',qte:320,ca:160000},{nom:'Coca-Cola 50cl',cat:'cat_boissons',qte:280,ca:112000},
   {nom:'Beaufort 65cl',cat:'cat_boissons',qte:210,ca:105000},{nom:'Fanta Orange',cat:'cat_boissons',qte:190,ca:76000},
-  {nom:'Supermont 1.5L',cat:'cat_boissons',qte:160,ca:48000},{nom:'Malta Guinness',cat:'cat_boissons',qte:140,ca:56000},
   {nom:'Riz parfumé 5kg',cat:'cat_alim',qte:85,ca:297500},{nom:'Huile végétale',cat:'cat_alim',qte:110,ca:132000},
-  {nom:'Sardines Maïté',cat:'cat_alim',qte:200,ca:100000},{nom:'Sucre 1kg',cat:'cat_alim',qte:180,ca:126000},
-  {nom:'Savon Camay',cat:'cat_hygiene',qte:150,ca:45000},{nom:'OMO 500g',cat:'cat_hygiene',qte:120,ca:96000},
-  {nom:'Colgate',cat:'cat_hygiene',qte:100,ca:60000},{nom:'Marlboro x20',cat:'cat_divers',qte:90,ca:135000},
+  {nom:'Sardines Maïté',cat:'cat_alim',qte:200,ca:100000},{nom:'Savon Camay',cat:'cat_hygiene',qte:150,ca:45000},
+  {nom:'OMO 500g',cat:'cat_hygiene',qte:120,ca:96000},{nom:'Marlboro x20',cat:'cat_divers',qte:90,ca:135000},
   {nom:'Recharge MTN',cat:'cat_divers',qte:200,ca:100000},
 ];
 
-function renderTopProduits() {
+function renderTopProduits(){
   var filtered=currentCatFilter?TOP_PRODUITS_DATA.filter(p=>p.cat===currentCatFilter):TOP_PRODUITS_DATA;
-  filtered.sort((a,b)=>b.qte-a.qte);
-  var top=filtered.slice(0,8);
-  var maxQte=top.length?top[0].qte:1;
+  filtered.sort((a,b)=>b.qte-a.qte);var top=filtered.slice(0,8),maxQte=top.length?top[0].qte:1;
   var COLORS={cat_boissons:'#1E88E5',cat_alim:'#F59E0B',cat_hygiene:'#00A86B',cat_divers:'#8B5CF6'};
   document.getElementById('top-produits-adv').innerHTML=top.map((p,i)=>{
     var pct=Math.round(p.qte/maxQte*100);
-    return `<div style="margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:12px;font-weight:700;color:#b0b8c4;width:16px;">${i+1}</span>
-          <span style="font-size:13px;font-weight:500;">${p.nom}</span>
-        </div>
-        <div style="text-align:right;">
-          <span style="font-size:12px;font-weight:700;">${p.qte} u.</span>
-          <span style="font-size:11px;color:#8b95a1;margin-left:6px;">${p.ca.toLocaleString()} F</span>
-        </div>
-      </div>
-      <div style="background:#f4f5f7;border-radius:4px;height:6px;overflow:hidden;">
-        <div style="width:${pct}%;height:100%;background:${COLORS[p.cat]||'#1E88E5'};border-radius:4px;transition:width 0.6s;"></div>
-      </div>
-    </div>`;
+    return `<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:700;color:#b0b8c4;width:16px;">${i+1}</span><span style="font-size:13px;font-weight:500;">${p.nom}</span></div><div><span style="font-size:12px;font-weight:700;">${p.qte} u.</span><span style="font-size:11px;color:#8b95a1;margin-left:6px;">${p.ca.toLocaleString()} F</span></div></div><div style="background:#f4f5f7;border-radius:4px;height:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${COLORS[p.cat]||'#1E88E5'};border-radius:4px;"></div></div></div>`;
   }).join('');
 }
 
-function renderQuartiers() {
-  var QDATA=[
-    {nom:'Bastos',ca:180000,cmd:38},{nom:'Biyem-Assi',ca:155000,cmd:32},
-    {nom:'Melen',ca:130000,cmd:27},{nom:'Mokolo',ca:110000,cmd:24},
-    {nom:'Mvog-Mbi',ca:95000,cmd:20},{nom:'Essos',ca:80000,cmd:17},
-    {nom:'Nlongkak',ca:65000,cmd:14},{nom:'Nkol-Eton',ca:50000,cmd:11},
-  ];
-  var maxCA=QDATA[0].ca;
-  var colors=['#1E88E5','#00A86B','#F59E0B','#8B5CF6','#dc3545','#06B6D4','#EC4899','#6B7280'];
+function renderQuartiers(){
+  var QDATA=[{nom:'Bastos',ca:180000,cmd:38},{nom:'Biyem-Assi',ca:155000,cmd:32},{nom:'Melen',ca:130000,cmd:27},{nom:'Mokolo',ca:110000,cmd:24},{nom:'Mvog-Mbi',ca:95000,cmd:20},{nom:'Essos',ca:80000,cmd:17},{nom:'Nlongkak',ca:65000,cmd:14},{nom:'Nkol-Eton',ca:50000,cmd:11}];
+  var maxCA=QDATA[0].ca,colors=['#1E88E5','#00A86B','#F59E0B','#8B5CF6','#dc3545','#06B6D4','#EC4899','#6B7280'];
   document.getElementById('chart-quartiers').innerHTML=QDATA.map((q,i)=>{
     var pct=Math.round(q.ca/maxCA*100);
-    return `<div style="margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div style="width:10px;height:10px;border-radius:50%;background:${colors[i]};flex-shrink:0;"></div>
-          <span style="font-size:13px;">${q.nom}</span>
-        </div>
-        <div><span style="font-size:12px;font-weight:700;">${q.ca.toLocaleString()} F</span><span style="font-size:11px;color:#8b95a1;margin-left:6px;">${q.cmd} cmd</span></div>
-      </div>
-      <div style="background:#f4f5f7;border-radius:4px;height:6px;overflow:hidden;">
-        <div style="width:${pct}%;height:100%;background:${colors[i]};border-radius:4px;transition:width 0.6s;"></div>
-      </div>
-    </div>`;
+    return `<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><div style="display:flex;align-items:center;gap:8px;"><div style="width:10px;height:10px;border-radius:50%;background:${colors[i]};flex-shrink:0;"></div><span style="font-size:13px;">${q.nom}</span></div><div><span style="font-size:12px;font-weight:700;">${q.ca.toLocaleString()} F</span><span style="font-size:11px;color:#8b95a1;margin-left:6px;">${q.cmd} cmd</span></div></div><div style="background:#f4f5f7;border-radius:4px;height:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${colors[i]};border-radius:4px;"></div></div></div>`;
   }).join('');
 }
 
-function renderRecap(data) {
-  var recent=data.slice(-14).reverse();
-  var tb=document.getElementById('tb-recap');
+function renderRecap(data){
+  var recent=data.slice(-14).reverse(),tb=document.getElementById('tb-recap');
   if(!recent.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:#8b95a1;">Aucune donnée</td></tr>';return;}
   tb.innerHTML=recent.map(d=>{
-    var total=d.commandes.length, taux=total?Math.round(d.livrees/total*100):0;
-    var panier=total?Math.round(d.ca/total):0;
+    var total=d.commandes.length,taux=total?Math.round(d.livrees/total*100):0,panier=total?Math.round(d.ca/total):0;
     var isToday=d.day===new Date().toLocaleDateString('fr-FR');
-    return `<tr style="${isToday?'background:#EBF4FD;':''}" >
-      <td>${d.day}${isToday?' <span style="font-size:10px;background:#1E88E5;color:white;padding:1px 6px;border-radius:4px;margin-left:4px;">Aujourd\'hui</span>':''}</td>
-      <td style="text-align:center;">${total}</td>
-      <td style="text-align:right;font-weight:600;">${d.ca.toLocaleString()} FCFA</td>
-      <td style="text-align:right;">${panier.toLocaleString()} FCFA</td>
-      <td style="text-align:center;">${d.livrees}</td>
-      <td style="text-align:center;"><span style="color:${taux>=80?'#00A86B':taux>=50?'#F59E0B':'#dc3545'};font-weight:600;">${taux}%</span></td>
-    </tr>`;
+    return `<tr style="${isToday?'background:#EBF4FD;':''}"><td>${d.day}${isToday?' <span style="font-size:10px;background:#1E88E5;color:white;padding:1px 6px;border-radius:4px;margin-left:4px;">Aujourd\'hui</span>':''}</td><td style="text-align:center;">${total}</td><td style="text-align:right;font-weight:600;">${d.ca.toLocaleString()} FCFA</td><td style="text-align:right;">${panier.toLocaleString()} FCFA</td><td style="text-align:center;">${d.livrees}</td><td style="text-align:center;"><span style="color:${taux>=80?'#00A86B':taux>=50?'#F59E0B':'#dc3545'};font-weight:600;">${taux}%</span></td></tr>`;
   }).join('');
 }
 
 // ══════════════════════════════════════════════════════
 // BOUTIQUES
 // ══════════════════════════════════════════════════════
-function renderBoutiques(search) {
+function renderBoutiques(search){
   var clients={};
-  toutesCommandes.forEach(c=>{
-    if(!clients[c.telephone]) clients[c.telephone]={tel:c.telephone,commandes:[],ca:0};
-    clients[c.telephone].commandes.push(c);
-    clients[c.telephone].ca+=(c.total||0);
-  });
+  toutesCommandes.forEach(c=>{if(!clients[c.telephone])clients[c.telephone]={tel:c.telephone,commandes:[],ca:0};clients[c.telephone].commandes.push(c);clients[c.telephone].ca+=(c.total||0);});
   toutesBoutiques=Object.values(clients);
   document.getElementById('boutiques-count').textContent=toutesBoutiques.length+' boutiques';
   var filtered=search?toutesBoutiques.filter(b=>b.tel.includes(search)):toutesBoutiques;
-  if(!filtered.length){
-    document.getElementById('boutiques-grid').innerHTML='<div style="padding:40px;text-align:center;color:#8b95a1;grid-column:1/-1;"><div style="font-size:36px;margin-bottom:12px;">🏪</div><h4>Aucune boutique</h4></div>';
-    return;
-  }
+  if(!filtered.length){document.getElementById('boutiques-grid').innerHTML='<div style="padding:40px;text-align:center;color:#8b95a1;grid-column:1/-1;"><div style="font-size:36px;margin-bottom:12px;">🏪</div><h4>Aucune boutique</h4></div>';return;}
   var colors=['#1E88E5','#00A86B','#F59E0B','#8B5CF6','#dc3545'];
   document.getElementById('boutiques-grid').innerHTML=filtered.map(b=>{
-    var panier=b.commandes.length?Math.round(b.ca/b.commandes.length):0;
-    var nom=seedData(b.tel,'boutique');
-    var quartier=seedData(b.tel,'quartier');
-    var color=colors[parseInt(b.tel.slice(-1))%colors.length];
-    return `<div class="boutique-card">
-      <div class="boutique-avatar" style="background:${color};">${nom.charAt(0)}</div>
-      <div class="boutique-name">${nom}</div>
-      <div class="boutique-tel">${b.tel} · <span style="color:#8b95a1;">${quartier}</span></div>
-      <div class="boutique-stats">
-        <div class="boutique-stat"><div class="boutique-stat-val">${b.commandes.length}</div><div class="boutique-stat-label">Commandes</div></div>
-        <div class="boutique-stat"><div class="boutique-stat-val">${b.ca.toLocaleString()}</div><div class="boutique-stat-label">CA (FCFA)</div></div>
-        <div class="boutique-stat"><div class="boutique-stat-val">${panier.toLocaleString()}</div><div class="boutique-stat-label">Panier moyen</div></div>
-        <div class="boutique-stat"><div class="boutique-stat-val">${b.commandes[0]?b.commandes[0].date:'-'}</div><div class="boutique-stat-label">Dernière cmd</div></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
-        <span style="font-size:12px;color:#8b95a1;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#00C853;margin-right:4px;"></span>Active</span>
-        <button class="btn btn-secondary btn-sm" onclick="voirBoutique('${b.tel}')">Voir détails →</button>
-      </div>
-    </div>`;
+    var panier=b.commandes.length?Math.round(b.ca/b.commandes.length):0,nom=seedData(b.tel,'boutique'),quartier=seedData(b.tel,'quartier'),color=colors[parseInt(b.tel.slice(-1))%colors.length];
+    return `<div class="boutique-card"><div class="boutique-avatar" style="background:${color};">${nom.charAt(0)}</div><div class="boutique-name">${nom}</div><div class="boutique-tel">${b.tel} · <span style="color:#8b95a1;">${quartier}</span></div><div class="boutique-stats"><div class="boutique-stat"><div class="boutique-stat-val">${b.commandes.length}</div><div class="boutique-stat-label">Commandes</div></div><div class="boutique-stat"><div class="boutique-stat-val">${b.ca.toLocaleString()}</div><div class="boutique-stat-label">CA (FCFA)</div></div><div class="boutique-stat"><div class="boutique-stat-val">${panier.toLocaleString()}</div><div class="boutique-stat-label">Panier moyen</div></div><div class="boutique-stat"><div class="boutique-stat-val">${b.commandes[0]?b.commandes[0].date:'-'}</div><div class="boutique-stat-label">Dernière cmd</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;"><span style="font-size:12px;color:#8b95a1;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#00C853;margin-right:4px;"></span>Active</span><button class="btn btn-secondary btn-sm" onclick="voirBoutique('${b.tel}')">Voir détails →</button></div></div>`;
   }).join('');
 }
-
 function filtrerBoutiques(){renderBoutiques(document.getElementById('search-boutique').value);}
-
-function voirBoutique(tel) {
-  var b=toutesBoutiques.find(x=>x.tel===tel);
-  if(!b) return;
+function voirBoutique(tel){
+  var b=toutesBoutiques.find(x=>x.tel===tel);if(!b)return;
   var nom=seedData(tel,'boutique');
   document.getElementById('modal-titre').textContent=nom;
-  document.getElementById('modal-content').innerHTML=`
-    <p style="color:#8b95a1;margin-bottom:16px;">📱 ${tel} · 📍 ${seedData(tel,'quartier')} · 👤 ${seedData(tel,'commercial')}</p>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
-      <div class="boutique-stat"><div class="boutique-stat-val">${b.commandes.length}</div><div class="boutique-stat-label">Commandes</div></div>
-      <div class="boutique-stat"><div class="boutique-stat-val">${b.ca.toLocaleString()}</div><div class="boutique-stat-label">CA total (FCFA)</div></div>
-      <div class="boutique-stat"><div class="boutique-stat-val">${b.commandes.length?Math.round(b.ca/b.commandes.length).toLocaleString():0}</div><div class="boutique-stat-label">Panier moyen</div></div>
-    </div>
-    <h4 style="margin-bottom:12px;font-size:13px;color:#0A2540;">Historique des commandes</h4>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead><tr>${['Numéro','Montant','Date','Statut'].map(h=>`<th style="text-align:left;padding:8px 10px;background:#f9fafb;font-size:11px;color:#8b95a1;font-weight:600;">${h}</th>`).join('')}</tr></thead>
-      <tbody>${b.commandes.slice(0,10).map(c=>`<tr><td style="padding:8px 10px;">${c.numero}</td><td style="padding:8px 10px;">${(c.total||0).toLocaleString()} FCFA</td><td style="padding:8px 10px;color:#8b95a1;">${c.date}</td><td style="padding:8px 10px;">${getBadge(c.statut)}</td></tr>`).join('')}</tbody>
-    </table>`;
+  document.getElementById('modal-content').innerHTML=`<p style="color:#8b95a1;margin-bottom:16px;">📱 ${tel} · 📍 ${seedData(tel,'quartier')} · 👤 ${seedData(tel,'commercial')}</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;"><div class="boutique-stat"><div class="boutique-stat-val">${b.commandes.length}</div><div class="boutique-stat-label">Commandes</div></div><div class="boutique-stat"><div class="boutique-stat-val">${b.ca.toLocaleString()}</div><div class="boutique-stat-label">CA total (FCFA)</div></div><div class="boutique-stat"><div class="boutique-stat-val">${b.commandes.length?Math.round(b.ca/b.commandes.length).toLocaleString():0}</div><div class="boutique-stat-label">Panier moyen</div></div></div><h4 style="margin-bottom:12px;font-size:13px;color:#0A2540;">Historique des commandes</h4><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>${['Numéro','Montant','Date','Statut'].map(h=>`<th style="text-align:left;padding:8px 10px;background:#f9fafb;font-size:11px;color:#8b95a1;font-weight:600;">${h}</th>`).join('')}</tr></thead><tbody>${b.commandes.slice(0,10).map(c=>`<tr><td style="padding:8px 10px;">${c.numero}</td><td style="padding:8px 10px;">${(c.total||0).toLocaleString()} FCFA</td><td style="padding:8px 10px;color:#8b95a1;">${c.date}</td><td style="padding:8px 10px;">${getBadge(c.statut)}</td></tr>`).join('')}</tbody></table>`;
   document.getElementById('modal-boutique').classList.add('open');
 }
 function closeModal(){document.getElementById('modal-boutique').classList.remove('open');}
@@ -1075,7 +826,7 @@ function closeModal(){document.getElementById('modal-boutique').classList.remove
 // ══════════════════════════════════════════════════════
 // CATALOGUE
 // ══════════════════════════════════════════════════════
-function chargerProduits(cat) {
+function chargerProduits(cat){
   catActive=cat||'';
   fetch('/api/produits'+(cat?'?categorie='+cat:'')).then(r=>r.json()).then(d=>{
     tousProduits=d;
@@ -1084,275 +835,167 @@ function chargerProduits(cat) {
     var tb=document.getElementById('tb-produits');
     if(!d.length){tb.innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-icon">📦</div><h4>Aucun produit</h4></div></td></tr>';return;}
     tb.innerHTML=d.map(p=>{
-      var achat=Math.round(parseInt(p.prix)*0.7);
-      var marge=parseInt(p.prix)-achat;
-      var margeP=Math.round(marge/parseInt(p.prix)*100);
-      return `<tr>
-        <td><strong>${p.nom}</strong></td>
-        <td style="font-size:12px;">${CATS_LABELS[p.categorie]||p.categorie}</td>
-        <td><strong>${parseInt(p.prix).toLocaleString()} FCFA</strong></td>
-        <td style="color:#8b95a1;">${achat.toLocaleString()} FCFA</td>
-        <td><span style="color:#00A86B;font-weight:600;">${marge.toLocaleString()} FCFA</span> <span style="font-size:11px;color:#8b95a1;">(${margeP}%)</span></td>
-        <td><span style="font-size:11px;background:#E8F8EF;color:#00A86B;padding:3px 10px;border-radius:10px;">✓ Disponible</span></td>
-        <td><button class="btn btn-danger btn-sm" onclick="supprimerProduit('${p.id}','${p.nom}')">🗑️</button></td>
-      </tr>`;
+      var achat=Math.round(parseInt(p.prix)*0.7),marge=parseInt(p.prix)-achat,margeP=Math.round(marge/parseInt(p.prix)*100);
+      return `<tr><td><strong>${p.nom}</strong></td><td style="font-size:12px;">${CATS_LABELS[p.categorie]||p.categorie}</td><td><strong>${parseInt(p.prix).toLocaleString()} FCFA</strong></td><td style="color:#8b95a1;">${achat.toLocaleString()} FCFA</td><td><span style="color:#00A86B;font-weight:600;">${marge.toLocaleString()} FCFA</span> <span style="font-size:11px;color:#8b95a1;">(${margeP}%)</span></td><td><span style="font-size:11px;background:#E8F8EF;color:#00A86B;padding:3px 10px;border-radius:10px;">✓ Disponible</span></td><td><button class="btn btn-danger btn-sm" onclick="supprimerProduit('${p.id}','${p.nom}')">🗑️</button></td></tr>`;
     }).join('');
   });
 }
-
-function ajouterProduit() {
-  var nom=document.getElementById('p-nom').value.trim(), prix=document.getElementById('p-prix').value.trim(), cat=document.getElementById('p-cat').value;
+function ajouterProduit(){
+  var nom=document.getElementById('p-nom').value.trim(),prix=document.getElementById('p-prix').value.trim(),cat=document.getElementById('p-cat').value;
   if(!nom||!prix){showToast('❌ Nom et prix requis',false);return;}
   fetch('/api/produits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom,prix:parseInt(prix),categorie:cat})})
   .then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ Produit ajouté!');document.getElementById('p-nom').value='';document.getElementById('p-prix').value='';chargerProduits(catActive);}});
 }
-
-function supprimerProduit(id,nom) {
-  if(!confirm('Supprimer '+nom+' ?')) return;
+function supprimerProduit(id,nom){
+  if(!confirm('Supprimer '+nom+' ?'))return;
   fetch('/api/produits/'+id,{method:'DELETE'}).then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ '+nom+' supprimé');chargerProduits(catActive);}});
 }
 
 // ══════════════════════════════════════════════════════
 // LIVRAISONS
 // ══════════════════════════════════════════════════════
-function renderLivraisons() {
-  var d=toutesCommandes, today=new Date().toLocaleDateString('fr-FR');
+function renderLivraisons(){
+  var d=toutesCommandes,today=new Date().toLocaleDateString('fr-FR');
   document.getElementById('liv-attente').textContent=d.filter(c=>c.statut==='En preparation').length;
   document.getElementById('liv-cours').textContent=d.filter(c=>c.statut==='En livraison').length;
   document.getElementById('liv-done').textContent=d.filter(c=>c.statut==='Livree'&&c.date===today).length;
-  document.getElementById('liv-retard').textContent=Math.floor(Math.random()*3);
+  document.getElementById('liv-retard').textContent=0;
   var all=[...d.filter(c=>c.statut==='En preparation'),...d.filter(c=>c.statut==='En livraison')].slice(0,20);
   var tb=document.getElementById('tb-livraisons');
   if(!all.length){tb.innerHTML='<tr><td colspan="8"><div class="empty"><div class="empty-icon">🚚</div><h4>Aucune livraison en cours</h4></div></td></tr>';return;}
-  tb.innerHTML=all.map(c=>`<tr>
-    <td><strong>${c.numero}</strong></td>
-    <td>${seedData(c.telephone,'boutique')}</td>
-    <td style="color:#8b95a1;">${c.telephone}</td>
-    <td><strong>${(c.total||0).toLocaleString()} FCFA</strong></td>
-    <td style="color:#8b95a1;">${c.date}</td>
-    <td>${getElapsed()}</td>
-    <td>${getBadge(c.statut)}</td>
-    <td><select onchange='changerStatut("${c.numero}",this.value)' style="padding:5px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;">
-      ${['En preparation','En livraison','Livree','Annulee'].map(s=>`<option value="${s}"${c.statut===s?' selected':''}>${s}</option>`).join('')}
-    </select></td>
-  </tr>`).join('');
+  tb.innerHTML=all.map(c=>`<tr><td><strong>${c.numero}</strong></td><td>${seedData(c.telephone,'boutique')}</td><td style="color:#8b95a1;">${c.telephone}</td><td><strong>${(c.total||0).toLocaleString()} FCFA</strong></td><td style="color:#8b95a1;">${c.date}</td><td>${getElapsed()}</td><td>${getBadge(c.statut)}</td><td><select onchange='changerStatut("${c.numero}",this.value)' style="padding:5px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;">${['En preparation','En livraison','Livree','Annulee'].map(s=>`<option value="${s}"${c.statut===s?' selected':''}>${s}</option>`).join('')}</select></td></tr>`).join('');
 }
 
 // ══════════════════════════════════════════════════════
 // AGENT
 // ══════════════════════════════════════════════════════
-function chargerDemandes() {
+function chargerDemandes(){
   fetch('/api/agent/demandes').then(r=>r.json()).then(d=>{
     var attente=d.filter(x=>x.statut==='en_attente').length;
     var nb=document.getElementById('badge-agent');
     if(attente>0){nb.textContent=attente;nb.style.display='inline';}else nb.style.display='none';
     var el=document.getElementById('demandes-agent');
     if(!d.length){el.innerHTML='<div class="empty"><div class="empty-icon">🙋</div><h4>Aucune demande</h4><p>Tout est traité ✓</p></div>';return;}
-    el.innerHTML=d.map(x=>`
-      <div class="agent-card ${x.statut}">
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-          <strong>📱 +${x.telephone}</strong>
-          <span class="badge ${x.statut==='en_attente'?'badge-prep':'badge-livree'}">${x.statut==='en_attente'?'En attente':'Traité'}</span>
-        </div>
-        <div style="font-size:11px;color:#8b95a1;margin-bottom:8px;">📅 ${x.date} à ${x.heure}</div>
-        <div style="background:#F7F8FA;padding:10px;border-radius:8px;font-size:13px;margin-bottom:12px;">💬 "${x.message}"</div>
-        <div style="display:flex;gap:8px;">
-          <input type="text" id="rep-${x.id}" placeholder="Répondre au client..." style="flex:1;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;">
-          <button class="btn btn-primary btn-sm" onclick="repondre('${x.telephone}',${x.id})">📤</button>
-          ${x.statut==='en_attente'?`<button class="btn btn-success btn-sm" onclick="marquerTraite(${x.id})">✅</button>`:''}
-        </div>
-      </div>`).join('');
+    el.innerHTML=d.map(x=>`<div class="agent-card ${x.statut}"><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><strong>📱 +${x.telephone}</strong><span class="badge ${x.statut==='en_attente'?'badge-prep':'badge-livree'}">${x.statut==='en_attente'?'En attente':'Traité'}</span></div><div style="font-size:11px;color:#8b95a1;margin-bottom:8px;">📅 ${x.date} à ${x.heure}</div><div style="background:#F7F8FA;padding:10px;border-radius:8px;font-size:13px;margin-bottom:12px;">💬 "${x.message}"</div><div style="display:flex;gap:8px;"><input type="text" id="rep-${x.id}" placeholder="Répondre..." style="flex:1;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;"><button class="btn btn-primary btn-sm" onclick="repondre('${x.telephone}',${x.id})">📤</button>${x.statut==='en_attente'?`<button class="btn btn-success btn-sm" onclick="marquerTraite(${x.id})">✅</button>`:''}</div></div>`).join('');
   });
 }
-
-function repondre(tel,id) {
+function repondre(tel,id){
   var msg=document.getElementById('rep-'+id).value.trim();
   if(!msg){showToast('❌ Message vide',false);return;}
   fetch('/api/agent/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telephone:tel,message:msg})})
   .then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ Message envoyé!');document.getElementById('rep-'+id).value='';marquerTraite(id);}});
 }
-
-function marquerTraite(id) {
-  fetch('/api/agent/'+id+'/statut',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut:'traite'})})
-  .then(()=>chargerDemandes());
+function marquerTraite(id){
+  fetch('/api/agent/'+id+'/statut',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut:'traite'})}).then(()=>chargerDemandes());
 }
-
-function envoyerMessage() {
-  var tel=document.getElementById('msg-tel').value.trim(), msg=document.getElementById('msg-text').value.trim();
+function envoyerMessage(){
+  var tel=document.getElementById('msg-tel').value.trim(),msg=document.getElementById('msg-text').value.trim();
   if(!tel||!msg){showToast('❌ Numéro et message requis',false);return;}
   fetch('/api/agent/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telephone:tel,message:msg})})
   .then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ Message envoyé!');document.getElementById('msg-text').value='';}});
 }
 
 // ══════════════════════════════════════════════════════
+// PROMOTIONS
+// ══════════════════════════════════════════════════════
+function updatePromoLabel(){
+  var type=document.getElementById('promo-type').value;
+  document.getElementById('promo-valeur-label').textContent=type==='pourcentage'?'Réduction (%)':'Réduction (FCFA)';
+}
+function chargerPromotions(){
+  fetch('/api/promotions').then(r=>r.json()).then(d=>{
+    var tb=document.getElementById('tb-promotions');
+    var CATS={cat_boissons:'🥤 Boissons',cat_alim:'🍪 Alimentation',cat_hygiene:'🧴 Hygiène',cat_divers:'🚬 Divers','':"Toutes"};
+    if(!d.length){tb.innerHTML='<tr><td colspan="8"><div class="empty"><div class="empty-icon">🔥</div><h4>Aucune promotion</h4></div></td></tr>';return;}
+    tb.innerHTML=d.map(p=>`<tr><td><strong>${p.titre}</strong></td><td style="font-size:12px;">${p.type==='pourcentage'?'%':'FCFA fixe'}</td><td><span style="color:#dc3545;font-weight:700;">-${p.valeur}${p.type==='pourcentage'?'%':' FCFA'}</span></td><td style="font-size:12px;">${CATS[p.categorie]||'Toutes'}</td><td style="font-size:12px;color:#8b95a1;">${p.description||'-'}</td><td style="font-size:11px;color:#8b95a1;">${p.date_debut||''}${p.date_fin?' → '+p.date_fin:''}</td><td><label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" ${(p.actif===true||p.actif===1)?'checked':''} onchange="togglePromo(${p.id},this.checked)" style="width:16px;height:16px;cursor:pointer;"><span style="font-size:12px;">${(p.actif===true||p.actif===1)?'Active':'Inactive'}</span></label></td><td><button class="btn btn-danger btn-sm" onclick="supprimerPromo(${p.id})">🗑️</button></td></tr>`).join('');
+  });
+}
+function creerPromotion(){
+  var titre=document.getElementById('promo-titre').value.trim(),type=document.getElementById('promo-type').value,valeur=document.getElementById('promo-valeur').value.trim(),cat=document.getElementById('promo-cat').value,desc=document.getElementById('promo-desc').value.trim(),debut=document.getElementById('promo-debut').value,fin=document.getElementById('promo-fin').value;
+  if(!titre||!valeur){showToast('❌ Titre et réduction requis',false);return;}
+  fetch('/api/promotions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titre,description:desc,type,valeur:parseInt(valeur),categorie:cat,date_debut:debut,date_fin:fin})})
+  .then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ Promotion créée!');document.getElementById('promo-titre').value='';document.getElementById('promo-valeur').value='';document.getElementById('promo-desc').value='';chargerPromotions();}});
+}
+function togglePromo(id,actif){
+  fetch('/api/promotions/'+id+'/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actif})})
+  .then(()=>{showToast(actif?'✅ Promotion activée':'⏸️ Promotion désactivée');chargerPromotions();});
+}
+function supprimerPromo(id){
+  if(!confirm('Supprimer cette promotion?'))return;
+  fetch('/api/promotions/'+id,{method:'DELETE'}).then(()=>{showToast('✅ Promotion supprimée');chargerPromotions();});
+}
+
+// ══════════════════════════════════════════════════════
+// CONFIGURATION
+// ══════════════════════════════════════════════════════
+function chargerConfig(){
+  fetch('/api/config').then(r=>r.json()).then(d=>{
+    document.getElementById('config-welcome').value=d.welcome_message||'';
+    document.getElementById('config-logo').value=d.logo_url||'';
+    if(d.logo_url){document.getElementById('logo-img').src=d.logo_url;document.getElementById('logo-preview').style.display='block';}
+  });
+  fetch('/api/produits').then(r=>r.json()).then(d=>{
+    document.getElementById('img-produit').innerHTML=d.map(p=>`<option value="${p.id}">${p.nom}</option>`).join('');
+    renderTableImages(d);
+  });
+}
+function renderTableImages(produits){
+  var tb=document.getElementById('tb-images');
+  var CATS={cat_boissons:'🥤 Boissons',cat_alim:'🍪 Alimentation',cat_hygiene:'🧴 Hygiène',cat_divers:'🚬 Divers'};
+  tb.innerHTML=produits.map(p=>`<tr><td><strong>${p.nom}</strong></td><td style="font-size:12px;">${CATS[p.categorie]||p.categorie}</td><td>${p.image_url&&p.image_url.startsWith('http')?`<img src="${p.image_url}" style="height:36px;border-radius:6px;border:1px solid #e5e7eb;" onerror="this.style.display='none'"> <span style="font-size:11px;color:#00A86B;">✓ Image</span>`:'<span style="font-size:11px;color:#8b95a1;">— Pas d\'image</span>'}</td><td><div style="display:flex;gap:6px;align-items:center;"><input type="text" placeholder="URL image..." value="${p.image_url&&p.image_url.startsWith('http')?p.image_url:''}" id="img-${p.id}" style="padding:5px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;width:200px;outline:none;"><button class="btn btn-primary btn-sm" onclick="sauvegarderImageProduit('${p.id}')">💾</button></div></td></tr>`).join('');
+}
+function sauvegarderConfig(){
+  var welcome=document.getElementById('config-welcome').value,logo=document.getElementById('config-logo').value.trim();
+  fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({welcome_message:welcome,logo_url:logo})})
+  .then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ Configuration sauvegardée!');if(logo){document.getElementById('logo-img').src=logo;document.getElementById('logo-preview').style.display='block';}}});
+}
+function previewWelcome(){alert('APERÇU WhatsApp:\n\n'+document.getElementById('config-welcome').value);}
+function sauvegarderImage(){
+  var id=document.getElementById('img-produit').value,url=document.getElementById('img-url').value.trim();
+  if(!url){showToast('❌ URL requise',false);return;}
+  fetch('/api/produits/'+id+'/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:url})})
+  .then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ Image sauvegardée!');chargerConfig();}});
+}
+function sauvegarderImageProduit(id){
+  var url=document.getElementById('img-'+id).value.trim();
+  if(!url){showToast('❌ URL requise',false);return;}
+  fetch('/api/produits/'+id+'/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:url})})
+  .then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ Image sauvegardée!');chargerConfig();}});
+}
+
+// ══════════════════════════════════════════════════════
 // EXPORT
 // ══════════════════════════════════════════════════════
-function exportCSV() {
+function exportCSV(){
   var rows=[['Numéro','Boutique','Téléphone','Quartier','Commercial','Montant','Date','Statut']];
   toutesCommandes.forEach(c=>rows.push([c.numero,seedData(c.telephone,'boutique'),c.telephone,seedData(c.telephone,'quartier'),seedData(c.telephone,'commercial'),c.total,c.date,c.statut]));
   var a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));
   a.download='zyntra-'+new Date().toISOString().slice(0,10)+'.csv';
-  a.click(); showToast('✅ Export CSV téléchargé');
+  a.click();showToast('✅ Export CSV téléchargé');
 }
-
-function exportExcel() {
+function exportExcel(){
   var rows=[['Numéro','Boutique','Téléphone','Quartier','Commercial','Montant','Date','Statut']];
   toutesCommandes.forEach(c=>rows.push([c.numero,seedData(c.telephone,'boutique'),c.telephone,seedData(c.telephone,'quartier'),seedData(c.telephone,'commercial'),c.total,c.date,c.statut]));
   var csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+(v||'')+'"').join(';')).join('\n');
   var a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='zyntra-'+new Date().toISOString().slice(0,10)+'.xls';
-  a.click(); showToast('✅ Export Excel téléchargé');
+  a.click();showToast('✅ Export Excel téléchargé');
 }
 
 // ══════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════
-// PROMOTIONS — ajouter dans le <script> de admin.html
-// ══════════════════════════════════════════════════════
-
-function updatePromoLabel() {
-  var type = document.getElementById('promo-type').value;
-  document.getElementById('promo-valeur-label').textContent = type==='pourcentage'?'Réduction (%)':'Réduction (FCFA)';
-}
-
-function chargerPromotions() {
-  fetch('/api/promotions').then(r=>r.json()).then(d=>{
-    var tb = document.getElementById('tb-promotions');
-    var CATS = {cat_boissons:'🥤 Boissons',cat_alim:'🍪 Alimentation',cat_hygiene:'🧴 Hygiène',cat_divers:'🚬 Divers','':"Toutes"};
-    if(!d.length){tb.innerHTML='<tr><td colspan="8"><div class="empty"><div class="empty-icon">🔥</div><h4>Aucune promotion</h4></div></td></tr>';return;}
-    tb.innerHTML=d.map(p=>`<tr>
-      <td><strong>${p.titre}</strong></td>
-      <td style="font-size:12px;">${p.type==='pourcentage'?'%':'FCFA fixe'}</td>
-      <td><span style="color:#dc3545;font-weight:700;">-${p.valeur}${p.type==='pourcentage'?'%':' FCFA'}</span></td>
-      <td style="font-size:12px;">${CATS[p.categorie]||'Toutes'}</td>
-      <td style="font-size:12px;color:#8b95a1;">${p.description||'-'}</td>
-      <td style="font-size:11px;color:#8b95a1;">${p.date_debut||''}${p.date_fin?' → '+p.date_fin:''}</td>
-      <td>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-          <input type="checkbox" ${(p.actif===true||p.actif===1)?'checked':''} onchange="togglePromo(${p.id},this.checked)" style="width:16px;height:16px;cursor:pointer;">
-          <span style="font-size:12px;">${(p.actif===true||p.actif===1)?'Active':'Inactive'}</span>
-        </label>
-      </td>
-      <td><button class="btn btn-danger btn-sm" onclick="supprimerPromo(${p.id})">🗑️</button></td>
-    </tr>`).join('');
-  });
-}
-
-function creerPromotion() {
-  var titre=document.getElementById('promo-titre').value.trim();
-  var type=document.getElementById('promo-type').value;
-  var valeur=document.getElementById('promo-valeur').value.trim();
-  var cat=document.getElementById('promo-cat').value;
-  var desc=document.getElementById('promo-desc').value.trim();
-  var debut=document.getElementById('promo-debut').value;
-  var fin=document.getElementById('promo-fin').value;
-  if(!titre||!valeur){showToast('❌ Titre et réduction requis',false);return;}
-  fetch('/api/promotions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titre,description:desc,type,valeur:parseInt(valeur),categorie:cat,date_debut:debut,date_fin:fin})})
-  .then(r=>r.json()).then(d=>{
-    if(d.ok){
-      showToast('✅ Promotion créée! Les clients verront -'+valeur+(type==='pourcentage'?'%':' FCFA'));
-      document.getElementById('promo-titre').value='';
-      document.getElementById('promo-valeur').value='';
-      document.getElementById('promo-desc').value='';
-      chargerPromotions();
-    }
-  });
-}
-
-function togglePromo(id, actif) {
-  fetch('/api/promotions/'+id+'/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actif})})
-  .then(()=>{showToast(actif?'✅ Promotion activée':'⏸️ Promotion désactivée');chargerPromotions();});
-}
-
-function supprimerPromo(id) {
-  if(!confirm('Supprimer cette promotion?')) return;
-  fetch('/api/promotions/'+id,{method:'DELETE'}).then(()=>{showToast('✅ Promotion supprimée');chargerPromotions();});
-}
-
-// ══════════════════════════════════════════════════════
-// CONFIG — ajouter dans le <script> de admin.html
-// ══════════════════════════════════════════════════════
-
-function chargerConfig() {
-  fetch('/api/config').then(r=>r.json()).then(d=>{
-    document.getElementById('config-welcome').value=d.welcome_message||'';
-    document.getElementById('config-logo').value=d.logo_url||'';
-    if(d.logo_url){
-      document.getElementById('logo-img').src=d.logo_url;
-      document.getElementById('logo-preview').style.display='block';
-    }
-  });
-  // Charger produits pour le select images
-  fetch('/api/produits').then(r=>r.json()).then(d=>{
-    var sel=document.getElementById('img-produit');
-    sel.innerHTML=d.map(p=>`<option value="${p.id}">${p.nom}</option>`).join('');
-    renderTableImages(d);
-  });
-}
-
-function renderTableImages(produits) {
-  var tb=document.getElementById('tb-images');
-  var CATS={cat_boissons:'🥤 Boissons',cat_alim:'🍪 Alimentation',cat_hygiene:'🧴 Hygiène',cat_divers:'🚬 Divers'};
-  tb.innerHTML=produits.map(p=>`<tr>
-    <td><strong>${p.nom}</strong></td>
-    <td style="font-size:12px;">${CATS[p.categorie]||p.categorie}</td>
-    <td>
-      ${p.image_url&&p.image_url.startsWith('http')?
-        `<img src="${p.image_url}" style="height:36px;border-radius:6px;border:1px solid #e5e7eb;" onerror="this.style.display='none'"> <span style="font-size:11px;color:#00A86B;">✓ Image</span>`:
-        '<span style="font-size:11px;color:#8b95a1;">— Pas d\'image</span>'}
-    </td>
-    <td>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <input type="text" placeholder="URL image..." value="${p.image_url&&p.image_url.startsWith('http')?p.image_url:''}" id="img-${p.id}" style="padding:5px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;width:200px;outline:none;">
-        <button class="btn btn-primary btn-sm" onclick="sauvegarderImageProduit('${p.id}')">💾</button>
-      </div>
-    </td>
-  </tr>`).join('');
-}
-
-function sauvegarderConfig() {
-  var welcome=document.getElementById('config-welcome').value;
-  var logo=document.getElementById('config-logo').value.trim();
-  fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({welcome_message:welcome,logo_url:logo})})
-  .then(r=>r.json()).then(d=>{
-    if(d.ok){
-      showToast('✅ Configuration sauvegardée!');
-      if(logo){document.getElementById('logo-img').src=logo;document.getElementById('logo-preview').style.display='block';}
-    }
-  });
-}
-
-function previewWelcome() {
-  var msg=document.getElementById('config-welcome').value;
-  alert('APERÇU WhatsApp:\n\n'+msg);
-}
-
-function sauvegarderImage() {
-  var id=document.getElementById('img-produit').value;
-  var url=document.getElementById('img-url').value.trim();
-  if(!url){showToast('❌ URL requise',false);return;}
-  fetch('/api/produits/'+id+'/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:url})})
-  .then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ Image sauvegardée!');chargerConfig();}});
-}
-
-function sauvegarderImageProduit(id) {
-  var url=document.getElementById('img-'+id).value.trim();
-  if(!url){showToast('❌ URL requise',false);return;}
-  fetch('/api/produits/'+id+'/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:url})})
-  .then(r=>r.json()).then(d=>{if(d.ok){showToast('✅ Image sauvegardée pour ce produit!');chargerConfig();}});
-}
 // INIT
 // ══════════════════════════════════════════════════════
 charger();
-setInterval(charger, 5000);
+setInterval(charger,5000);
 setInterval(()=>{
   fetch('/api/agent/demandes').then(r=>r.json()).then(d=>{
     var attente=d.filter(x=>x.statut==='en_attente').length;
     var nb=document.getElementById('badge-agent');
     if(attente>0){nb.textContent=attente;nb.style.display='inline';}else nb.style.display='none';
   });
-}, 10000);
+},10000);
 </script>
 </body>
 </html>
