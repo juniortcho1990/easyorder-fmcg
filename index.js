@@ -67,10 +67,10 @@ if (process.env.DATABASE_URL) {
 // CATALOGUE PAR CATÉGORIES
 // ─────────────────────────────────────────────
 const CATEGORIES = [
-  { id:'cat_boissons', nom:'🥤 Boissons',         emoji:'🥤' },
-  { id:'cat_alim',     nom:'🍪 Alimentation',      emoji:'🍪' },
-  { id:'cat_hygiene',  nom:'🧴 Hygiène & Beauté',  emoji:'🧴' },
-  { id:'cat_divers',   nom:'🚬 Tabac & Divers',    emoji:'🚬' }
+  { id:'cat_boissons', nom:'🥤 Boissons',    emoji:'🥤' },
+  { id:'cat_alim',     nom:'🍪 Alimentation', emoji:'🍪' },
+  { id:'cat_hygiene',  nom:'🧴 Hygiene',      emoji:'🧴' },
+  { id:'cat_divers',   nom:'🚬 Tabac Divers', emoji:'🚬' }
 ];
 
 const PRODUITS_DEFAUT = [
