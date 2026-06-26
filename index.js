@@ -333,7 +333,14 @@ async function handleMessage(from, msg, buttonId) {
 
   console.log(`🔍 État: "${s.e}" | msg: "${m}" | bid: "${bid}"`);
 
+  // ── MODE AGENT ACTIF — bloquer l'automatisation ──
+  if (s.e === 'agent' && !['btn_menu','btn_commander','btn_agent'].includes(bid) && !['menu','bonjour','hello','salut','start','agent'].includes(m)) {
+    console.log(`🔕 Mode agent actif — message ignoré pour ${from}`);
+    return; // Ne pas répondre automatiquement
+  }
+
   // ── DEMANDE AGENT ──
+
   if (m === 'agent' || m === 'aide' || m === 'help' || bid === 'btn_agent') {
     s.e = 'agent'; s.p = []; s.produit_en_cours = ''; s.categorie_en_cours = '';
     await saveSession(from, s);
@@ -376,7 +383,6 @@ async function handleMessage(from, msg, buttonId) {
 
   // ── AJOUTER PRODUIT → retour catégorie courante ──
   if (bid === 'btn_ajouter') {
-    if (s.categorie_en_cours) return afficherProduits(from, s, s.categorie_en_cours);
     return afficherCategories(from, s);
   }
 
