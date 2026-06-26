@@ -275,7 +275,7 @@ async function afficherCategories(from, s) {
   }
   return sendList(from,
     '🏪 Choisissez une catégorie:' + panierInfo,
-    '📂 Voir les catégories',
+    '📂 Categories',
     [{ title:'Catégories', rows: CATEGORIES.map(c => ({ id:c.id, title:c.nom, description:'Appuyez pour voir les produits' })) }]
   );
 }
