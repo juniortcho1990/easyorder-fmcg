@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs');
 
 const app = express();
-app.use(express.json({ limit: '10mb' })); // Pour les images base64
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ─────────────────────────────────────────────
@@ -43,12 +43,21 @@ if (process.env.DATABASE_URL) {
     CREATE TABLE IF NOT EXISTS config (
       cle TEXT PRIMARY KEY, valeur TEXT
     );
+    CREATE TABLE IF NOT EXISTS boutiques (
+      telephone TEXT PRIMARY KEY, nom TEXT, quartier TEXT DEFAULT '',
+      commercial TEXT DEFAULT '', date_inscription TEXT, notes TEXT DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS commande_seq (
+      id SERIAL PRIMARY KEY, last_num INTEGER DEFAULT 0
+    );
   `).then(async () => {
     const r = await pool.query('SELECT COUNT(*) FROM produits');
     if (parseInt(r.rows[0].count) === 0) await initProduits();
-    // Config par défaut
-    await pool.query(`INSERT INTO config (cle,valeur) VALUES ('welcome_message','Bienvenue sur ZYNTRA! 🛒\n\nVotre plateforme de commande FMCG au Cameroun.\n\nComment puis-je vous aider?') ON CONFLICT DO NOTHING`);
+    await pool.query(`INSERT INTO config (cle,valeur) VALUES ('welcome_message','Bienvenue sur ZYNTRA! 🛒\n\nVotre plateforme de commande FMCG.\n\nComment puis-je vous aider?') ON CONFLICT DO NOTHING`);
     await pool.query(`INSERT INTO config (cle,valeur) VALUES ('logo_url','') ON CONFLICT DO NOTHING`);
+    // Init séquence commandes
+    const seq = await pool.query('SELECT COUNT(*) FROM commande_seq');
+    if (parseInt(seq.rows[0].count) === 0) await pool.query('INSERT INTO commande_seq (last_num) VALUES (0)');
     console.log('PostgreSQL pret!');
   });
 } else {
@@ -82,11 +91,36 @@ if (process.env.DATABASE_URL) {
     CREATE TABLE IF NOT EXISTS config (
       cle TEXT PRIMARY KEY, valeur TEXT
     );
+    CREATE TABLE IF NOT EXISTS boutiques (
+      telephone TEXT PRIMARY KEY, nom TEXT, quartier TEXT DEFAULT '',
+      commercial TEXT DEFAULT '', date_inscription TEXT, notes TEXT DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS commande_seq (
+      id INTEGER PRIMARY KEY, last_num INTEGER DEFAULT 0
+    );
   `);
   const count = db.prepare('SELECT COUNT(*) as c FROM produits').get();
   if (count.c === 0) initProduits();
   try { db.prepare(`INSERT OR IGNORE INTO config (cle,valeur) VALUES ('welcome_message','Bienvenue sur ZYNTRA!')`).run(); } catch(e){}
+  const seqCount = db.prepare('SELECT COUNT(*) as c FROM commande_seq').get();
+  if (seqCount.c === 0) db.prepare('INSERT INTO commande_seq (id,last_num) VALUES (1,0)').run();
   console.log('SQLite pret!');
+}
+
+// ─────────────────────────────────────────────
+// NUMÉRO COMMANDE SÉQUENTIEL
+// ─────────────────────────────────────────────
+async function getNextNumeroCommande() {
+  if (usePostgres) {
+    const r = await pool.query('UPDATE commande_seq SET last_num = last_num + 1 RETURNING last_num');
+    const num = r.rows[0].last_num;
+    return 'CMD' + String(num).padStart(6, '0');
+  } else {
+    const row = db.prepare('SELECT last_num FROM commande_seq WHERE id=1').get();
+    const newNum = (row?.last_num || 0) + 1;
+    db.prepare('UPDATE commande_seq SET last_num=? WHERE id=1').run(newNum);
+    return 'CMD' + String(newNum).padStart(6, '0');
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -131,12 +165,36 @@ const PRODUITS_DEFAUT = [
 
 async function initProduits() {
   for (const p of PRODUITS_DEFAUT) {
-    if (usePostgres) {
-      await pool.query('INSERT INTO produits (id,nom,prix,categorie) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [p.id,p.nom,p.prix,p.categorie]);
-    } else {
-      db.prepare('INSERT OR IGNORE INTO produits (id,nom,prix,categorie,actif) VALUES (?,?,?,?,1)').run(p.id,p.nom,p.prix,p.categorie);
-    }
+    if (usePostgres) await pool.query('INSERT INTO produits (id,nom,prix,categorie) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [p.id,p.nom,p.prix,p.categorie]);
+    else db.prepare('INSERT OR IGNORE INTO produits (id,nom,prix,categorie,actif) VALUES (?,?,?,?,1)').run(p.id,p.nom,p.prix,p.categorie);
   }
+}
+
+// ─────────────────────────────────────────────
+// FONCTIONS DB — BOUTIQUES
+// ─────────────────────────────────────────────
+async function getBoutique(tel) {
+  if (usePostgres) { const r = await pool.query('SELECT * FROM boutiques WHERE telephone=$1', [tel]); return r.rows[0]; }
+  return db.prepare('SELECT * FROM boutiques WHERE telephone=?').get(tel);
+}
+
+async function getAllBoutiques() {
+  if (usePostgres) { const r = await pool.query('SELECT * FROM boutiques ORDER BY nom'); return r.rows; }
+  return db.prepare('SELECT * FROM boutiques ORDER BY nom').all();
+}
+
+async function upsertBoutique(tel, nom, quartier, commercial, notes) {
+  const date = new Date().toLocaleDateString('fr-FR');
+  if (usePostgres) {
+    await pool.query('INSERT INTO boutiques (telephone,nom,quartier,commercial,date_inscription,notes) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (telephone) DO UPDATE SET nom=$2,quartier=$3,commercial=$4,notes=$6', [tel,nom,quartier||'',commercial||'',date,notes||'']);
+  } else {
+    db.prepare('INSERT OR REPLACE INTO boutiques (telephone,nom,quartier,commercial,date_inscription,notes) VALUES (?,?,?,?,?,?)').run(tel,nom,quartier||'',commercial||'',date,notes||'');
+  }
+}
+
+async function getNomBoutique(tel) {
+  const b = await getBoutique(tel);
+  return b?.nom || ('Boutique ' + tel.slice(-4));
 }
 
 // ─────────────────────────────────────────────
@@ -144,9 +202,7 @@ async function initProduits() {
 // ─────────────────────────────────────────────
 async function getProduits(categorie) {
   if (usePostgres) {
-    const q = categorie
-      ? 'SELECT * FROM produits WHERE actif=TRUE AND categorie=$1 ORDER BY id'
-      : 'SELECT * FROM produits WHERE actif=TRUE ORDER BY categorie,id';
+    const q = categorie ? 'SELECT * FROM produits WHERE actif=TRUE AND categorie=$1 ORDER BY id' : 'SELECT * FROM produits WHERE actif=TRUE ORDER BY categorie,id';
     const r = await pool.query(q, categorie ? [categorie] : []);
     return r.rows;
   }
@@ -215,21 +271,13 @@ async function supprimerPromotion(id) {
   else db.prepare('DELETE FROM promotions WHERE id=?').run(id);
 }
 
-// Calculer prix après promo
 async function getPrixAvecPromo(produit) {
   const promos = await getPromotions(true);
   let prixFinal = parseInt(produit.prix);
   let promoAppliquee = null;
-
   for (const p of promos) {
-    const matchProduit = p.produit_id && p.produit_id === produit.id;
-    const matchCategorie = p.categorie && p.categorie === produit.categorie;
-    if (matchProduit || matchCategorie) {
-      if (p.type === 'pourcentage') {
-        prixFinal = Math.round(produit.prix * (1 - p.valeur/100));
-      } else {
-        prixFinal = Math.max(0, produit.prix - p.valeur);
-      }
+    if ((p.produit_id && p.produit_id === produit.id) || (p.categorie && p.categorie === produit.categorie)) {
+      prixFinal = p.type === 'pourcentage' ? Math.round(produit.prix * (1 - p.valeur/100)) : Math.max(0, produit.prix - p.valeur);
       promoAppliquee = p;
       break;
     }
@@ -321,26 +369,11 @@ async function sendAPI(to, payload) {
   });
 }
 
-async function sendText(to, body) {
-  return sendAPI(to, {messaging_product:'whatsapp',to,type:'text',text:{body}});
-}
+async function sendText(to, body) { return sendAPI(to, {messaging_product:'whatsapp',to,type:'text',text:{body}}); }
+async function sendImage(to, imageUrl, caption) { return sendAPI(to, {messaging_product:'whatsapp',to,type:'image',image:{link:imageUrl,caption:caption||''}}); }
+async function sendButtons(to, body, buttons) { return sendAPI(to, {messaging_product:'whatsapp',to,type:'interactive',interactive:{type:'button',body:{text:body},action:{buttons:buttons.map(b=>({type:'reply',reply:{id:b.id,title:b.title}}))}}}); }
+async function sendList(to, body, buttonText, sections) { return sendAPI(to, {messaging_product:'whatsapp',to,type:'interactive',interactive:{type:'list',body:{text:body},action:{button:buttonText,sections}}}); }
 
-async function sendImage(to, imageUrl, caption) {
-  return sendAPI(to, {
-    messaging_product:'whatsapp', to, type:'image',
-    image:{ link: imageUrl, caption: caption || '' }
-  });
-}
-
-async function sendButtons(to, body, buttons) {
-  return sendAPI(to, {messaging_product:'whatsapp',to,type:'interactive',interactive:{type:'button',body:{text:body},action:{buttons:buttons.map(b=>({type:'reply',reply:{id:b.id,title:b.title}}))}}});
-}
-
-async function sendList(to, body, buttonText, sections) {
-  return sendAPI(to, {messaging_product:'whatsapp',to,type:'interactive',interactive:{type:'list',body:{text:body},action:{button:buttonText,sections}}});
-}
-
-// Notifications statut
 const MESSAGES_STATUT = {
   'En preparation': '⏳ Commande *{num}* en préparation.\n\n✅ Reçue → ⏳ Préparation → ⬜ Livraison → ⬜ Livrée',
   'En livraison':   '🚚 Commande *{num}* en route!\n\n✅ Reçue → ✅ Préparation → 🚚 Livraison → ⬜ Livrée',
@@ -351,17 +384,21 @@ const MESSAGES_STATUT = {
 async function notifierClient(telephone, numero, statut) {
   const template = MESSAGES_STATUT[statut];
   if (!template) return;
-  await sendText(telephone, template.replace('{num}', numero));
+  // Personnaliser avec le nom de la boutique
+  const nomBoutique = await getNomBoutique(telephone);
+  const msg = template.replace('{num}', numero) + `\n\n_${nomBoutique}_`;
+  await sendText(telephone, msg);
 }
 
 async function notifierAdmin(telephone, message) {
   const adminTel = process.env.ADMIN_PHONE;
   if (!adminTel) return;
-  await sendText(adminTel, `🆘 AGENT ZYNTRA\n\nClient: +${telephone}\n"${message}"\n\nRépondez depuis le dashboard.`);
+  const nomBoutique = await getNomBoutique(telephone);
+  await sendText(adminTel, `🆘 AGENT ZYNTRA\n\n${nomBoutique} (+${telephone})\n"${message}"\n\nRépondez depuis le dashboard.`);
 }
 
 // ─────────────────────────────────────────────
-// BOT — AFFICHER PROMOTIONS ACTIVES
+// BOT
 // ─────────────────────────────────────────────
 async function getMessagePromos() {
   const promos = await getPromotions(true);
@@ -374,21 +411,12 @@ async function getMessagePromos() {
   return msg;
 }
 
-// ─────────────────────────────────────────────
-// BOT — CATALOGUE
-// ─────────────────────────────────────────────
 async function afficherCategories(from, s) {
   s.e = 'categories'; s.categorie_en_cours = ''; s.produit_en_cours = '';
   await saveSession(from, s);
-  let panierInfo = '';
-  if (s.p.length > 0) {
-    const total = s.p.reduce((a,x)=>a+x.prix*x.q,0);
-    panierInfo = '\n\n🛒 Panier: '+total.toLocaleString()+' FCFA';
-  }
+  let panierInfo = s.p.length > 0 ? '\n\n🛒 Panier: '+s.p.reduce((a,x)=>a+x.prix*x.q,0).toLocaleString()+' FCFA' : '';
   const promoMsg = await getMessagePromos();
-  return sendList(from,
-    '🏪 Choisissez une catégorie:'+panierInfo+promoMsg,
-    '📂 Categories',
+  return sendList(from, '🏪 Choisissez une catégorie:'+panierInfo+promoMsg, '📂 Categories',
     [{title:'Catégories', rows:CATEGORIES.map(c=>({id:c.id,title:c.nom,description:'Voir les produits'}))}]
   );
 }
@@ -398,115 +426,71 @@ async function afficherProduits(from, s, categorieId) {
   await saveSession(from, s);
   const cat = CATEGORIES.find(c=>c.id===categorieId);
   const produits = await getProduits(categorieId);
-  if (!produits.length) {
-    return sendButtons(from, 'Aucun produit disponible.',
-      [{id:'btn_categories',title:'⬅️ Catégories'},{id:'btn_menu',title:'🏠 Menu'}]
-    );
-  }
-  let panierInfo = '';
-  if (s.p.length > 0) {
-    const total = s.p.reduce((a,x)=>a+x.prix*x.q,0);
-    panierInfo = '\n\n🛒 Panier: '+total.toLocaleString()+' FCFA';
-  }
-  // Préparer les rows avec prix promo
+  if (!produits.length) return sendButtons(from, 'Aucun produit disponible.', [{id:'btn_categories',title:'⬅️ Catégories'},{id:'btn_menu',title:'🏠 Menu'}]);
+  let panierInfo = s.p.length > 0 ? '\n\n🛒 Panier: '+s.p.reduce((a,x)=>a+x.prix*x.q,0).toLocaleString()+' FCFA' : '';
   const rows = [];
   for (const x of produits) {
     const {prixFinal, promoAppliquee} = await getPrixAvecPromo(x);
     const label = promoAppliquee ? `🔥 ${prixFinal.toLocaleString()} FCFA (-${promoAppliquee.type==='pourcentage'?promoAppliquee.valeur+'%':promoAppliquee.valeur+' F'})` : `${parseInt(x.prix).toLocaleString()} FCFA`;
     rows.push({id:x.id, title:x.nom.slice(0,24), description:label.slice(0,72)});
   }
-  return sendList(from,
-    `${cat.nom}\n\nChoisissez un produit:${panierInfo}`,
-    '📦 Voir les produits',
-    [{title:cat.nom, rows}]
-  );
+  return sendList(from, `${cat.nom}\n\nChoisissez un produit:${panierInfo}`, '📦 Voir les produits', [{title:cat.nom, rows}]);
 }
 
-// Timeline suivi
 function getTimeline(statut) {
   const etapes = ['En preparation','En livraison','Livree'];
   const labels = ['Préparation','Livraison','Livrée'];
   const emojis = ['⏳','🚚','✅'];
   const idx = etapes.indexOf(statut);
   let t = '📍 *SUIVI DE COMMANDE:*\n\n✅ Commande reçue\n';
-  labels.forEach((l,i) => {
-    if(i<idx) t+='✅ '+l+'\n';
-    else if(i===idx) t+=emojis[i]+' '+l+' ← ici\n';
-    else t+='⬜ '+l+'\n';
-  });
+  labels.forEach((l,i) => { if(i<idx) t+='✅ '+l+'\n'; else if(i===idx) t+=emojis[i]+' '+l+' ← ici\n'; else t+='⬜ '+l+'\n'; });
   return t;
 }
 
-// ─────────────────────────────────────────────
-// LOGIQUE BOT PRINCIPALE
-// ─────────────────────────────────────────────
 async function handleMessage(from, msg, buttonId) {
   const s = await getSession(from);
   const m = String(msg).trim().toLowerCase();
   const bid = buttonId || '';
   console.log(`État: "${s.e}" | msg: "${m}" | bid: "${bid}"`);
 
-  // ── MENU ──
   if (['menu','bonjour','hello','salut','start','hi'].includes(m) || bid==='btn_menu') {
     s.e='menu'; s.p=[]; s.produit_en_cours=''; s.categorie_en_cours='';
     await saveSession(from, s);
-    const welcomeMsg = await getConfig('welcome_message') || 'Bienvenue sur ZYNTRA! 🛒';
+    // Enregistrer boutique si nouvelle
+    const b = await getBoutique(from);
+    if (!b) await upsertBoutique(from, 'Boutique '+from.slice(-4), '', '', '');
+    const nomBoutique = await getNomBoutique(from);
+    const welcomeMsg = (await getConfig('welcome_message')) || 'Bienvenue sur ZYNTRA! 🛒';
     const promoMsg = await getMessagePromos();
     const logoUrl = await getConfig('logo_url');
-    // Envoyer logo si configuré
-    if (logoUrl && logoUrl.startsWith('http')) {
-      await sendImage(from, logoUrl, 'ZYNTRA — Votre plateforme FMCG');
-    }
+    if (logoUrl && logoUrl.startsWith('http')) await sendImage(from, logoUrl, 'ZYNTRA');
     return sendButtons(from,
-      welcomeMsg + promoMsg + '\n\n_(Tapez AGENT pour un conseiller)_',
+      `Bonjour *${nomBoutique}*! 👋\n\n${welcomeMsg}${promoMsg}\n\n_(Tapez AGENT pour un conseiller)_`,
       [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_commandes',title:'📦 Mes commandes'},{id:'btn_contact',title:'📞 Contact'}]
     );
   }
 
-  // ── PROMOTIONS ──
-  if (m==='promo' || m==='offres' || bid==='btn_promos') {
+  if (m==='promo'||m==='offres'||bid==='btn_promos') {
     const promos = await getPromotions(true);
-    if (!promos.length) {
-      return sendButtons(from, '😊 Aucune promotion en cours.\n\nRestez à l\'écoute pour les prochaines offres!',
-        [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]
-      );
-    }
+    if (!promos.length) return sendButtons(from, '😊 Aucune promotion en cours.', [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]);
     let msg2 = '🔥 *PROMOTIONS EN COURS:*\n\n';
-    promos.forEach(p => {
-      const remise = p.type==='pourcentage'?`-${p.valeur}%`:`-${parseInt(p.valeur).toLocaleString()} FCFA`;
-      msg2 += `*${p.titre}* ${remise}\n${p.description||''}\n\n`;
-    });
-    return sendButtons(from, msg2,
-      [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]
-    );
+    promos.forEach(p => { const remise = p.type==='pourcentage'?`-${p.valeur}%`:`-${parseInt(p.valeur).toLocaleString()} FCFA`; msg2 += `*${p.titre}* ${remise}\n${p.description||''}\n\n`; });
+    return sendButtons(from, msg2, [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]);
   }
 
-  // ── AGENT ──
   if (m==='agent'||m==='aide'||m==='help'||bid==='btn_agent') {
     await insertDemandeAgent(from, msg);
     await notifierAdmin(from, msg);
     const adminTel = process.env.ADMIN_PHONE || '237651161577';
-    return sendButtons(from,
-      '🙋 Parlez à un agent ZYNTRA!\n\nhttps://wa.me/'+adminTel+'\n\nDisponible 8h - 20h 📞',
-      [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]
-    );
+    return sendButtons(from, '🙋 Parlez à un agent ZYNTRA!\n\nhttps://wa.me/'+adminTel+'\n\nDisponible 8h - 20h 📞',
+      [{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]);
   }
 
-  // ── COMMANDER ──
-  if (bid==='btn_commander'||(s.e==='menu'&&(m==='1'||m==='commander'))) {
-    return afficherCategories(from, s);
-  }
+  if (bid==='btn_commander'||(s.e==='menu'&&(m==='1'||m==='commander'))) return afficherCategories(from, s);
+  if (bid==='btn_categories') return afficherCategories(from, s);
+  if (bid && bid.startsWith('cat_')) return afficherProduits(from, s, bid);
+  if (bid==='btn_ajouter') return afficherCategories(from, s);
 
-  // ── RETOUR CATÉGORIES ──
-  if (bid==='btn_categories') { return afficherCategories(from, s); }
-
-  // ── SÉLECTION CATÉGORIE ──
-  if (bid && bid.startsWith('cat_')) { return afficherProduits(from, s, bid); }
-
-  // ── AJOUTER PRODUIT ──
-  if (bid==='btn_ajouter') { return afficherCategories(from, s); }
-
-  // ── SÉLECTION PRODUIT → quantité + image ──
   if (bid && !bid.startsWith('cat_') && !bid.startsWith('btn_') && !bid.startsWith('qte_') && s.e==='cat') {
     const produits = await getProduits();
     const p = produits.find(x=>x.id===bid);
@@ -514,26 +498,14 @@ async function handleMessage(from, msg, buttonId) {
       s.e='qte'; s.produit_en_cours=bid;
       await saveSession(from, s);
       const {prixFinal, promoAppliquee} = await getPrixAvecPromo(p);
-      // Envoyer image si disponible
-      if (p.image_url && p.image_url.startsWith('http')) {
-        await sendImage(from, p.image_url, p.nom);
-      }
-      let promoTxt = '';
-      if (promoAppliquee) {
-        promoTxt = `\n🔥 PROMO: ${promoAppliquee.type==='pourcentage'?`-${promoAppliquee.valeur}%`:`-${promoAppliquee.valeur} FCFA`} (${prixFinal.toLocaleString()} FCFA)`;
-      }
-      return sendButtons(from,
-        `📦 *${p.nom}*\n💰 ${parseInt(p.prix).toLocaleString()} FCFA${promoTxt}\n\nQuelle quantité?`,
-        [
-          {id:'qte_1',title:`x1 — ${prixFinal.toLocaleString()} F`},
-          {id:'qte_2',title:`x2 — ${(prixFinal*2).toLocaleString()} F`},
-          {id:'qte_5',title:`x5 — ${(prixFinal*5).toLocaleString()} F`}
-        ]
+      if (p.image_url && p.image_url.startsWith('http')) await sendImage(from, p.image_url, p.nom);
+      let promoTxt = promoAppliquee ? `\n🔥 PROMO: ${promoAppliquee.type==='pourcentage'?`-${promoAppliquee.valeur}%`:`-${promoAppliquee.valeur} FCFA`} (${prixFinal.toLocaleString()} FCFA)` : '';
+      return sendButtons(from, `📦 *${p.nom}*\n💰 ${parseInt(p.prix).toLocaleString()} FCFA${promoTxt}\n\nQuelle quantité?`,
+        [{id:'qte_1',title:`x1 — ${prixFinal.toLocaleString()} F`},{id:'qte_2',title:`x2 — ${(prixFinal*2).toLocaleString()} F`},{id:'qte_5',title:`x5 — ${(prixFinal*5).toLocaleString()} F`}]
       );
     }
   }
 
-  // ── QUANTITÉ ──
   if (bid && bid.startsWith('qte_') && s.e==='qte') {
     const qte = parseInt(bid.replace('qte_',''));
     const produits = await getProduits();
@@ -546,41 +518,34 @@ async function handleMessage(from, msg, buttonId) {
       await saveSession(from, s);
       const total = s.p.reduce((a,x)=>a+x.prix*x.q,0);
       let detail=''; s.p.forEach(x=>{detail+='• '+x.nom+' x'+x.q+' = '+(x.prix*x.q).toLocaleString()+' FCFA\n';});
-      return sendButtons(from,
-        '✅ '+p.nom+' x'+qte+' ajouté!\n\n🛒 PANIER:\n'+detail+'\nTOTAL: '+total.toLocaleString()+' FCFA',
+      return sendButtons(from, '✅ '+p.nom+' x'+qte+' ajouté!\n\n🛒 PANIER:\n'+detail+'\nTOTAL: '+total.toLocaleString()+' FCFA',
         [{id:'btn_ajouter',title:'➕ Ajouter produit'},{id:'btn_confirmer',title:'✅ Confirmer'},{id:'btn_menu',title:'❌ Annuler'}]
       );
     }
   }
 
-  // ── PANIER ──
   if (m==='0'||bid==='btn_panier') {
     if (!s.p.length) return sendButtons(from,'🛒 Panier vide.',[{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]);
     let t=0,r='🛒 VOTRE PANIER:\n\n';
     s.p.forEach(p=>{t+=p.prix*p.q;r+='• '+p.nom+' x'+p.q+' = '+(p.prix*p.q).toLocaleString()+' FCFA\n';});
-    return sendButtons(from,r+'\nTOTAL: '+t.toLocaleString()+' FCFA',[
-      {id:'btn_confirmer',title:'✅ Confirmer'},
-      {id:'btn_ajouter',title:'➕ Ajouter'},
-      {id:'btn_menu',title:'❌ Annuler'}
-    ]);
+    return sendButtons(from,r+'\nTOTAL: '+t.toLocaleString()+' FCFA',[{id:'btn_confirmer',title:'✅ Confirmer'},{id:'btn_ajouter',title:'➕ Ajouter'},{id:'btn_menu',title:'❌ Annuler'}]);
   }
 
-  // ── CONFIRMER ──
   if (m==='confirmer'||bid==='btn_confirmer') {
     if (!s.p.length) return sendButtons(from,'🛒 Panier vide.',[{id:'btn_commander',title:'🛒 Commander'}]);
     const t = s.p.reduce((a,p)=>a+p.prix*p.q,0);
-    const n = 'CMD-'+Date.now().toString().slice(-6);
+    const n = await getNextNumeroCommande();
     const date = new Date().toLocaleDateString('fr-FR');
     await insertCommande(n,from,t,date);
     s.p=[]; s.e='menu'; s.produit_en_cours=''; s.categorie_en_cours='';
     await saveSession(from, s);
+    const nomBoutique = await getNomBoutique(from);
     return sendButtons(from,
-      '✅ COMMANDE CONFIRMÉE!\n\nNuméro: *'+n+'*\nTotal: *'+t.toLocaleString()+' FCFA*\nDate: '+date+'\n\n'+getTimeline('En preparation')+'\nMerci pour votre commande ZYNTRA! 🎉',
+      `✅ COMMANDE CONFIRMÉE!\n\nBonjour *${nomBoutique}*\nNuméro: *${n}*\nTotal: *${t.toLocaleString()} FCFA*\nDate: ${date}\n\n${getTimeline('En preparation')}\nMerci pour votre commande ZYNTRA! 🎉`,
       [{id:'btn_commander',title:'🛒 Nouvelle commande'},{id:'btn_suivi',title:'📍 Suivi commande'}]
     );
   }
 
-  // ── MES COMMANDES ──
   if (bid==='btn_commandes'||bid==='btn_suivi'||(s.e==='menu'&&m==='2')) {
     const commandes = await getCommandesClient(from);
     if (!commandes.length) return sendButtons(from,"Pas encore de commandes.",[{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]);
@@ -589,19 +554,12 @@ async function handleMessage(from, msg, buttonId) {
     return sendButtons(from,msg2,[{id:'btn_commander',title:'🛒 Commander'},{id:'btn_menu',title:'🏠 Menu'}]);
   }
 
-  // ── CONTACT ──
   if (bid==='btn_contact'||(s.e==='menu'&&m==='3')) {
-    return sendButtons(from,'📞 Support ZYNTRA:\n\n+237 651 16 15 77\n8h - 20h\n\nTapez PROMO pour les offres!',[
-      {id:'btn_agent',title:'🙋 Parler agent'},
-      {id:'btn_promos',title:'🔥 Promotions'},
-      {id:'btn_menu',title:'🏠 Menu'}
-    ]);
+    return sendButtons(from,'📞 Support ZYNTRA:\n\n+237 651 16 15 77\n8h - 20h\n\nTapez PROMO pour les offres!',
+      [{id:'btn_agent',title:'🙋 Parler agent'},{id:'btn_promos',title:'🔥 Promotions'},{id:'btn_menu',title:'🏠 Menu'}]);
   }
 
-  // ── FALLBACK ──
-  return sendButtons(from,'Tapez MENU pour recommencer ou AGENT pour un conseiller. 👋',
-    [{id:'btn_menu',title:'🏠 Menu'},{id:'btn_agent',title:'🙋 Agent'}]
-  );
+  return sendButtons(from,'Tapez MENU pour recommencer ou AGENT pour un conseiller. 👋',[{id:'btn_menu',title:'🏠 Menu'},{id:'btn_agent',title:'🙋 Agent'}]);
 }
 
 // ─────────────────────────────────────────────
@@ -631,7 +589,7 @@ app.post('/webhook', async (req, res) => {
 // ─────────────────────────────────────────────
 // ROUTES API
 // ─────────────────────────────────────────────
-app.use((req,res,next)=>{res.header('Access-Control-Allow-Origin','*');res.header('Access-Control-Allow-Methods','GET,POST,DELETE,PUT');res.header('Access-Control-Allow-Headers','Content-Type');next();});
+app.use((req,res,next)=>{res.header('Access-Control-Allow-Origin','*');res.header('Access-Control-Allow-Methods','GET,POST,DELETE,PUT,PATCH');res.header('Access-Control-Allow-Headers','Content-Type');next();});
 
 app.get('/test',(req,res)=>res.json({status:'ZYNTRA actif'}));
 app.get('/api/commandes',async(req,res)=>res.json(await getCommandes()));
@@ -642,6 +600,8 @@ app.post('/api/commandes/:num/statut',async(req,res)=>{
   if(cmd) await notifierClient(cmd.telephone,num,statut);
   res.json({ok:true});
 });
+
+// Produits
 app.get('/api/produits',async(req,res)=>res.json(await getProduits(req.query.categorie)));
 app.post('/api/produits',async(req,res)=>{
   const{nom,prix,categorie,description}=req.body;
@@ -651,12 +611,9 @@ app.post('/api/produits',async(req,res)=>{
   res.json({ok:true,id});
 });
 app.post('/api/produits/:id/image',async(req,res)=>{
-  const{image_base64,image_url}=req.body;
-  // Si URL directe fournie
+  const{image_url}=req.body;
   if(image_url){await updateProduitImage(req.params.id,image_url);return res.json({ok:true,url:image_url});}
-  // Si base64 — stocker directement
-  if(image_base64){await updateProduitImage(req.params.id,image_base64);return res.json({ok:true});}
-  res.status(400).json({error:'image_base64 ou image_url requis'});
+  res.status(400).json({error:'image_url requis'});
 });
 app.delete('/api/produits/:id',async(req,res)=>{await supprimerProduit(req.params.id);res.json({ok:true});});
 
@@ -668,22 +625,24 @@ app.post('/api/promotions',async(req,res)=>{
   await ajouterPromotion(titre,description,type||'pourcentage',parseInt(valeur),categorie,produit_id,date_debut,date_fin);
   res.json({ok:true});
 });
-app.post('/api/promotions/:id/toggle',async(req,res)=>{
-  await togglePromotion(req.params.id,req.body.actif);
-  res.json({ok:true});
-});
+app.post('/api/promotions/:id/toggle',async(req,res)=>{await togglePromotion(req.params.id,req.body.actif);res.json({ok:true});});
 app.delete('/api/promotions/:id',async(req,res)=>{await supprimerPromotion(req.params.id);res.json({ok:true});});
 
 // Config
-app.get('/api/config',async(req,res)=>{
-  const welcome=await getConfig('welcome_message');
-  const logo=await getConfig('logo_url');
-  res.json({welcome_message:welcome,logo_url:logo});
-});
+app.get('/api/config',async(req,res)=>{res.json({welcome_message:await getConfig('welcome_message'),logo_url:await getConfig('logo_url')});});
 app.post('/api/config',async(req,res)=>{
   const{welcome_message,logo_url}=req.body;
   if(welcome_message!==undefined) await setConfig('welcome_message',welcome_message);
   if(logo_url!==undefined) await setConfig('logo_url',logo_url);
+  res.json({ok:true});
+});
+
+// Boutiques
+app.get('/api/boutiques',async(req,res)=>res.json(await getAllBoutiques()));
+app.post('/api/boutiques',async(req,res)=>{
+  const{telephone,nom,quartier,commercial,notes}=req.body;
+  if(!telephone||!nom) return res.status(400).json({error:'telephone et nom requis'});
+  await upsertBoutique(telephone,nom,quartier,commercial,notes);
   res.json({ok:true});
 });
 
@@ -693,9 +652,11 @@ app.post('/api/agent/:id/statut',async(req,res)=>{await updateDemandeAgent(req.p
 app.post('/api/agent/message',async(req,res)=>{
   const{telephone,message}=req.body;
   if(!telephone||!message) return res.status(400).json({error:'requis'});
+  const nomBoutique = await getNomBoutique(telephone);
   await sendText(telephone,'👤 Agent ZYNTRA:\n\n'+message);
   res.json({ok:true});
 });
+
 app.get('/api/categories',(req,res)=>res.json(CATEGORIES));
 app.get('/admin',(req,res)=>res.send(fs.readFileSync('admin.html','utf8')));
 app.get('/',(req,res)=>res.redirect('/admin'));
